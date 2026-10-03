@@ -1,59 +1,18 @@
 {
   "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "firestore.rules"
   },
-  "functions": [
-    {
-      "source": ".",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.zip"
-      ]
-    }
-  ],
   "hosting": {
-    "public": ".",
+    "public": "dist",
     "ignore": [
       "firebase.json",
-      "firestore.rules",
-      "firestore.indexes.json",
-      "functions-index.js",
-      "functions-ai.js",
-      "package.json",
-      "package-lock.json",
       "**/.*",
-      "**/node_modules/**",
-      "*.zip"
+      "**/node_modules/**"
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
-      }
-    ],
-    "headers": [
-      {
-        "source": "/service-worker.js",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      },
-      {
-        "source": "**/*.@(css|js|svg|json)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=3600"
-          }
-        ]
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }
