@@ -1,0 +1,234 @@
+/* ==========================================================================
+   EXAMIVO — ANIMATION ENGINE & AI INTELLIGENCE CORE STATES
+   ========================================================================== */
+
+@keyframes coreBreathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.78;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes corePulseFast {
+  0%, 100% {
+    transform: scale(0.96);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+@keyframes orbitClockwise {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbitCounterClockwise {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes signalPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes pageExit {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.992);
+  }
+}
+
+@keyframes questionSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes questionSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
+
+@keyframes stagePulseDot {
+  0%, 100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.55);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Page Transition Classes */
+.page-transition-enter {
+  animation: pageEnter 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.page-transition-exit {
+  animation: pageExit 190ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Question Transition Classes */
+.question-enter {
+  animation: questionSlideIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.question-exit {
+  animation: questionSlideOut 150ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ==========================================================================
+   AI INTELLIGENCE CORE SVG ELEMENT BEHAVIORS BY STATE
+   States: idle | reading | thinking | analyzing | generating | checking | complete | error
+   ========================================================================== */
+
+.ai-core .core-outer-ring {
+  transform-origin: 60px 60px;
+  animation: orbitClockwise 28s linear infinite;
+}
+
+.ai-core .core-orbit-a {
+  transform-origin: 60px 60px;
+  animation: orbitCounterClockwise 18s linear infinite;
+}
+
+.ai-core .core-orbit-b {
+  transform-origin: 60px 60px;
+  animation: orbitClockwise 22s linear infinite;
+}
+
+.ai-core .core-nucleus {
+  transform-origin: 60px 60px;
+  animation: coreBreathe 4.2s ease-in-out infinite;
+}
+
+.ai-core .core-node {
+  transform-origin: center;
+  animation: signalPulse 3.2s ease-in-out infinite;
+}
+
+/* State: reading / analyzing / thinking / generating / checking (Active Intelligence) */
+.ai-core[data-state="reading"] .core-outer-ring,
+.ai-core[data-state="thinking"] .core-outer-ring,
+.ai-core[data-state="analyzing"] .core-outer-ring,
+.ai-core[data-state="generating"] .core-outer-ring,
+.ai-core[data-state="checking"] .core-outer-ring {
+  animation-duration: 9s;
+}
+
+.ai-core[data-state="reading"] .core-orbit-a,
+.ai-core[data-state="thinking"] .core-orbit-a,
+.ai-core[data-state="analyzing"] .core-orbit-a,
+.ai-core[data-state="generating"] .core-orbit-a,
+.ai-core[data-state="checking"] .core-orbit-a {
+  animation-duration: 6.5s;
+}
+
+.ai-core[data-state="reading"] .core-orbit-b,
+.ai-core[data-state="thinking"] .core-orbit-b,
+.ai-core[data-state="analyzing"] .core-orbit-b,
+.ai-core[data-state="generating"] .core-orbit-b,
+.ai-core[data-state="checking"] .core-orbit-b {
+  animation-duration: 8s;
+}
+
+.ai-core[data-state="thinking"] .core-nucleus,
+.ai-core[data-state="analyzing"] .core-nucleus,
+.ai-core[data-state="generating"] .core-nucleus {
+  animation: corePulseFast 1.8s ease-in-out infinite;
+}
+
+/* State: complete */
+.ai-core[data-state="complete"] .ai-core-halo {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.34) 0%, rgba(56, 189, 248, 0.16) 50%, transparent 72%);
+}
+
+/* State: error */
+.ai-core[data-state="error"] .ai-core-halo {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.34) 0%, transparent 70%);
+}
+
+.ai-core[data-state="error"] .core-outer-ring,
+.ai-core[data-state="error"] .core-orbit-a,
+.ai-core[data-state="error"] .core-orbit-b {
+  animation-play-state: paused;
+}
+
+/* Stage React Flash when transitioning stages */
+.ai-core.stage-shift .core-nucleus {
+  transform: scale(1.22);
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

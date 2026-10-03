@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080A0F" />
+  <meta name="description" content="Examination Performance Results & Weak Area Analysis — EXAMIVO" />
+  <title>Examination Results — EXAMIVO</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="global.css" />
+  <link rel="stylesheet" href="animations.css" />
+  <link rel="stylesheet" href="setup.css" />
+  <link rel="stylesheet" href="results.css" />
+</head>
+<body data-page="results">
+  <!-- Top Navigation -->
+  <header class="top-nav">
+    <div class="nav-inner">
+      <a href="index.html" class="brand-link" data-smooth-nav>
+        <span class="brand-core-mini" aria-hidden="true"></span>
+        <span>EXAMIVO</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
+        <a href="setup.html" class="nav-link" data-smooth-nav>New Practice</a>
+        <a href="history.html" class="nav-link" data-smooth-nav>History</a>
+        <a href="study.html" class="nav-link" data-smooth-nav>Study Mistakes</a>
+      </nav>
+
+      <div class="nav-actions">
+        <span class="net-pill hidden" role="status">Offline</span>
+
+        <div class="theme-switcher" role="group" aria-label="Color theme">
+          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </button>
+        </div>
+
+        <div id="nav-auth-slot"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <div class="container results-main" id="results-content-root">
+      <!-- Guest Save Progress Prompt Banner -->
+      <div id="guest-save-banner" class="card" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-color:var(--border-highlight); background:var(--primary-soft);">
+        <div>
+          <strong style="color:var(--text-primary); font-size:0.95rem;">Save this examination to your permanent history</strong>
+          <p style="font-size:0.84rem; color:var(--text-secondary);">Create a free account or sign in to keep your weak-area diagnostics and progress across devices.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="guest-save-progress-btn">Save Progress</button>
+      </div>
+
+      <!-- Score Reveal Hero Card -->
+      <section class="score-hero-card" aria-label="Examination Score Summary">
+        <div class="score-dial-column">
+          <div class="score-big-percent" id="score-animated-number">0%</div>
+          <div class="score-fraction-label" id="score-fraction-label">0 / 0 correct</div>
+        </div>
+
+        <div class="score-summary-column">
+          <div class="score-exam-meta" id="result-exam-meta"></div>
+          <h1 class="score-headline" id="result-headline-text">Performance Analysis Complete</h1>
+          <p id="result-subcopy-text" style="font-size:0.98rem;"></p>
+
+          <div style="display:flex; flex-wrap:wrap; gap:0.85rem; margin-top:0.35rem;">
+            <button type="button" class="btn btn-primary btn-lg" id="practice-weak-areas-btn">
+              <span>Practice My Weak Areas</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <button type="button" class="btn btn-secondary btn-lg" id="study-mistakes-btn">
+              <span>Study My Mistakes</span>
+            </button>
+            <a href="setup.html" class="btn btn-ghost btn-lg" data-smooth-nav>New Material</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Performance Breakdown: Strong Areas | Areas to Practice | Weak Areas -->
+      <section aria-labelledby="perf-breakdown-heading" style="margin-bottom:2.25rem;">
+        <h2 id="perf-breakdown-heading" style="font-size:1.15rem; margin-bottom:1rem;">Performance Breakdown</h2>
+        <div class="performance-bands-grid">
+          <div class="perf-band-card band-strong">
+            <div class="perf-band-title" style="color:var(--success);">
+              <span>Strong Areas</span>
+              <span>✓</span>
+            </div>
+            <div class="perf-topic-chips" id="band-strong-chips"></div>
+          </div>
+
+          <div class="perf-band-card band-practice">
+            <div class="perf-band-title" style="color:var(--warning);">
+              <span>Areas to Practice</span>
+              <span>●</span>
+            </div>
+            <div class="perf-topic-chips" id="band-practice-chips"></div>
+          </div>
+
+          <div class="perf-band-card band-weak">
+            <div class="perf-band-title" style="color:var(--danger);">
+              <span>Weak Areas</span>
+              <span>!</span>
+            </div>
+            <div class="perf-topic-chips" id="band-weak-chips"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WEAK AREA ENGINE -->
+      <section class="weak-engine-card" aria-labelledby="weak-engine-title">
+        <div class="weak-engine-header">
+          <div>
+            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--primary); margin-bottom:0.25rem;">
+              EXAMIVO Weak Area Engine
+            </div>
+            <h2 style="font-size:1.35rem;" id="weak-engine-title">EXAMIVO found areas to strengthen.</h2>
+          </div>
+        </div>
+
+        <div class="weak-diagnostic-grid" id="weak-diagnostic-grid"></div>
+
+        <div class="methodology-box" id="weak-methodology-text"></div>
+      </section>
+
+      <!-- QUESTION REVIEW -->
+      <section aria-labelledby="question-review-heading">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.15rem;">
+          <h2 style="font-size:1.35rem;" id="question-review-heading">Question Review</h2>
+
+          <div class="review-filter-tabs" role="tablist" aria-label="Filter reviewed questions">
+            <button type="button" class="pill-option selected" data-review-filter="all">All Questions</button>
+            <button type="button" class="pill-option" data-review-filter="wrong">Incorrect Only</button>
+            <button type="button" class="pill-option" data-review-filter="correct">Correct Only</button>
+            <button type="button" class="pill-option" data-review-filter="flagged">Flagged</button>
+          </div>
+        </div>
+
+        <div class="review-list" id="question-review-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- FULL-SCREEN AI OVERLAY: "BUILDING YOUR NEXT PRACTICE" -->
+  <div class="ai-thinking-overlay" id="weak-practice-overlay" aria-hidden="true" role="dialog" aria-labelledby="weak-practice-title">
+    <div class="thinking-container">
+      <div id="weak-practice-core-slot"></div>
+      <h2 class="thinking-heading" id="weak-practice-title">BUILDING YOUR NEXT PRACTICE</h2>
+      <p class="thinking-subcontext">Adapting question blueprint to reinforce your weak areas</p>
+      <div class="thinking-stages-list" id="weak-practice-stages-list"></div>
+    </div>
+  </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Home</span>
+    </a>
+    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Dashboard</span>
+    </a>
+    <a href="setup.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Prepare</span>
+    </a>
+    <a href="history.html" class="mobile-nav-item" data-smooth-nav>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script type="module" src="results.js"></script>
+</body>
+</html>

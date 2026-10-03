@@ -1,0 +1,293 @@
+/* ==========================================================================
+   EXAMIVO — DASHBOARD & HISTORY STYLES (app.html & history.html)
+   ========================================================================== */
+
+.dashboard-main {
+  padding: 2.25rem 0 4rem;
+}
+
+.welcome-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  justify-content: space-between;
+  padding: 2rem;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface) 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .welcome-banner {
+    flex-direction: row;
+    align-items: center;
+    padding: 2.35rem 2.5rem;
+  }
+}
+
+.welcome-banner::after {
+  content: '';
+  position: absolute;
+  right: -60px;
+  top: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.welcome-content {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+}
+
+.welcome-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--primary);
+  margin-bottom: 0.35rem;
+}
+
+.welcome-title {
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+  margin-bottom: 0.45rem;
+}
+
+.welcome-subtitle {
+  font-size: 0.96rem;
+  color: var(--text-secondary);
+}
+
+.welcome-cta-area {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+/* Your Progress 4-Card Strip */
+.section-block {
+  margin-bottom: 2.5rem;
+}
+
+.section-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.section-block-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 860px) {
+  .progress-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.progress-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.progress-stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.progress-stat-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.progress-stat-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Two-Column Dashboard Split: Recent Practice + Weak Areas */
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.75rem;
+}
+
+@media (min-width: 960px) {
+  .dashboard-columns {
+    grid-template-columns: 1.3fr 0.9fr;
+  }
+}
+
+.practice-list, .weak-area-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.practice-item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+@media (min-width: 600px) {
+  .practice-item-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.practice-item-card:hover {
+  border-color: var(--border-highlight);
+  background: var(--surface-elevated);
+}
+
+.practice-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.practice-item-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.practice-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.practice-item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.score-pill {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+
+.score-pill.high {
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid var(--success-border);
+}
+
+.score-pill.mid {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border: 1px solid var(--warning-border);
+}
+
+.score-pill.low {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+/* Weak Area Item Card */
+.weak-item-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.weak-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.weak-item-topic {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.weak-item-subject {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.weak-item-reason {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+
+.weak-item-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* History Filter Bar */
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.history-filters .form-select,
+.history-filters .form-input {
+  width: auto;
+  min-width: 170px;
+  flex: 1;
+}

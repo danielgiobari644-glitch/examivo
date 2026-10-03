@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#818CF8" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="#4F46E5" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#090B10" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ringGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="ringGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.75"/>
+      <stop offset="60%" stop-color="#818CF8" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="52" fill="url(#coreGlow)"/>
+  <circle cx="60" cy="60" r="46" stroke="url(#ringGrad1)" stroke-width="1.25" stroke-dasharray="18 8 6 8"/>
+  <ellipse cx="60" cy="60" rx="38" ry="22" transform="rotate(-28 60 60)" stroke="url(#ringGrad2)" stroke-width="1.4"/>
+  <ellipse cx="60" cy="60" rx="38" ry="22" transform="rotate(32 60 60)" stroke="url(#ringGrad1)" stroke-width="1.4"/>
+  <circle cx="60" cy="60" r="24" stroke="#818CF8" stroke-opacity="0.35" stroke-width="1"/>
+  <line x1="60" y1="14" x2="60" y2="30" stroke="#818CF8" stroke-opacity="0.45" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="60" y1="90" x2="60" y2="106" stroke="#818CF8" stroke-opacity="0.45" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="14" y1="60" x2="30" y2="60" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="90" y1="60" x2="106" y2="60" stroke="#38BDF8" stroke-opacity="0.45" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="60" cy="60" r="11" fill="#6366F1"/>
+  <circle cx="60" cy="60" r="6" fill="#E0E7FF"/>
+  <circle cx="29" cy="43" r="3" fill="#38BDF8"/>
+  <circle cx="91" cy="77" r="3" fill="#818CF8"/>
+  <circle cx="84" cy="36" r="2.5" fill="#A5B4FC"/>
+</svg>
