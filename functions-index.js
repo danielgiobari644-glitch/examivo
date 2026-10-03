@@ -38,9 +38,11 @@ function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
+    "X-Examivo-Backend": "active",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Expose-Headers": "X-Examivo-Backend"
   });
   res.end(body);
 }
@@ -75,19 +77,21 @@ function parseRequestBody(req) {
 async function handleApiRequest(req, res) {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
+      "X-Examivo-Backend": "active",
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Expose-Headers": "X-Examivo-Backend"
     });
     res.end();
     return;
   }
 
   const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-  const pathname = parsedUrl.pathname;
+  const pathname = parsedUrl.pathname.replace(/\/+$/, "");
 
   try {
-    if (pathname === "/api/health" && req.method === "GET") {
+    if (pathname.endsWith("/api/health") && (req.method === "GET" || req.method === "HEAD")) {
       const cfg = resolveAIProviderConfig();
       return sendJson(res, 200, {
         status: "ok",
@@ -97,25 +101,25 @@ async function handleApiRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/ai/pipeline" && req.method === "POST") {
+    if (pathname.endsWith("/api/ai/pipeline") && req.method === "POST") {
       const body = await parseRequestBody(req);
       const result = await executeFullExaminationPipeline(body);
       return sendJson(res, 200, result);
     }
 
-    if (pathname === "/api/ai/weak-practice" && req.method === "POST") {
+    if (pathname.endsWith("/api/ai/weak-practice") && req.method === "POST") {
       const body = await parseRequestBody(req);
       const result = await executeWeakAreaPracticePipeline(body);
       return sendJson(res, 200, result);
     }
 
-    if (pathname === "/api/ai/evaluate" && req.method === "POST") {
+    if (pathname.endsWith("/api/ai/evaluate") && req.method === "POST") {
       const body = await parseRequestBody(req);
       const result = await executeOpenResponseEvaluation(body);
       return sendJson(res, 200, result);
     }
 
-    if (pathname === "/api/ai/study" && req.method === "POST") {
+    if (pathname.endsWith("/api/ai/study") && req.method === "POST") {
       const body = await parseRequestBody(req);
       const result = await executeStudyMistakesGeneration(body);
       return sendJson(res, 200, result);
@@ -142,7 +146,6 @@ try {
   const { onRequest } = require("firebase-functions/v2/https");
   exports.api = onRequest({ cors: true, timeoutSeconds: 120, memory: "512MiB" }, handleApiRequest);
 } catch (_) {
-  // firebase-functions not installed in standalone local environment; export handler directly
   exports.api = handleApiRequest;
 }
 
@@ -155,15 +158,14 @@ if (require.main === module) {
     const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     let pathname = decodeURIComponent(parsedUrl.pathname);
 
-    if (pathname.startsWith("/api/")) {
+    if (pathname.includes("/api/")) {
       return handleApiRequest(req, res);
     }
 
-    if (pathname === "/") {
+    if (pathname === "/" || pathname === "") {
       pathname = "/index.html";
     }
 
-    // Prevent directory traversal and block sensitive backend files from static serving
     const safeFile = path.basename(pathname);
     const blockedFiles = new Set([
       "functions-index.js",
@@ -175,7 +177,10 @@ if (require.main === module) {
     ]);
 
     if (blockedFiles.has(safeFile)) {
-      res.writeHead(403, { "Content-Type": "text/plain" });
+      res.writeHead(403, {
+        "Content-Type": "text/plain",
+        "X-Examivo-Backend": "active"
+      });
       res.end("Forbidden");
       return;
     }
@@ -183,21 +188,31 @@ if (require.main === module) {
     const filePath = path.join(ROOT_DIR, safeFile);
     fs.stat(filePath, (err, stats) => {
       if (err || !stats.isFile()) {
-        // Fallback to index.html if clean path requested
         const htmlCandidate = path.join(ROOT_DIR, `${safeFile}.html`);
         if (fs.existsSync(htmlCandidate)) {
-          res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+          res.writeHead(200, {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Examivo-Backend": "active"
+          });
+          if (req.method === "HEAD") return res.end();
           fs.createReadStream(htmlCandidate).pipe(res);
           return;
         }
-        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.writeHead(404, {
+          "Content-Type": "text/plain",
+          "X-Examivo-Backend": "active"
+        });
         res.end("Not Found");
         return;
       }
 
       const ext = path.extname(filePath).toLowerCase();
       const contentType = MIME_TYPES[ext] || "application/octet-stream";
-      res.writeHead(200, { "Content-Type": contentType });
+      res.writeHead(200, {
+        "Content-Type": contentType,
+        "X-Examivo-Backend": "active"
+      });
+      if (req.method === "HEAD") return res.end();
       fs.createReadStream(filePath).pipe(res);
     });
   });

@@ -368,11 +368,16 @@ export function initSmoothLinks() {
    ========================================================================== */
 
 export function initPWAAndNetwork() {
-  if ("serviceWorker" in navigator) {
+  if ("serviceWorker" in navigator && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("service-worker.js").catch(() => {
-        // Non-blocking if SW registration fails in restricted iframe
-      });
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then((reg) => {
+          reg.update().catch(() => {});
+        })
+        .catch(() => {
+          // Non-blocking if SW registration is restricted
+        });
     });
   }
 
