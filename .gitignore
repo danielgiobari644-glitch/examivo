@@ -1,8 +1,8 @@
-node_modules/
-build/
-dist/
-coverage/
+.env
+.env.local
 .DS_Store
+Thumbs.db
 *.log
-.env*
-!.env.example
+firebase-debug.log
+.firebaserc
+firebase.json.bak

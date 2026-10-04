@@ -1,101 +1,181 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isSignedIn() {
+    
+    // Helper functions
+    function isAuthenticated() {
       return request.auth != null;
     }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    
+    function isUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    function isResourceOwner() {
-      return isSignedIn() && resource.data.userId == request.auth.uid;
+    function isSupportSpace(spaceId) {
+      return (exists(/databases/$(database)/documents/spaces/$(spaceId)) &&
+        (get(/databases/$(database)/documents/spaces/$(spaceId)).data.codeUpper == 'HN-JM96Q7' ||
+         get(/databases/$(database)/documents/spaces/$(spaceId)).data.isOfficialSupport == true ||
+         spaceId == 'hubblenest-support'));
     }
 
-    function isCreatingOwnResource() {
-      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    function isSpaceMember(spaceId) {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid)) ||
+        isSupportSpace(spaceId)
+      );
     }
 
-    function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+    function isSpaceAdmin(spaceId) {
+      return isAuthenticated() && (
+        (exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid)).data.role == 'admin') ||
+        (exists(/databases/$(database)/documents/spaces/$(spaceId)) &&
+         get(/databases/$(database)/documents/spaces/$(spaceId)).data.createdBy == request.auth.uid)
+      );
     }
 
-    // Users collection: private account record
+    // User Profiles
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create, update: if isOwner(userId);
-      allow delete: if isOwner(userId) || isAdmin();
-    }
-
-    // Profiles collection: student academic preferences & aggregate progress
-    match /profiles/{userId} {
-      allow read: if isOwner(userId);
-      allow create, update: if isOwner(userId);
-      allow delete: if isOwner(userId) || isAdmin();
-    }
-
-    // Exams collection: generated examination blueprints & metadata
-    match /exams/{examId} {
-      allow read: if isResourceOwner();
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isResourceOwner();
-    }
-
-    // Questions collection: validated questions tied to a user's exam
-    match /questions/{questionId} {
-      allow read: if isResourceOwner();
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isResourceOwner();
-    }
-
-    // Attempts collection: completed exam submissions, scores & question breakdowns
-    match /attempts/{attemptId} {
-      allow read: if isResourceOwner();
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isResourceOwner();
-    }
-
-    // StudySessions collection: targeted mistake revision & study sessions
-    match /studySessions/{sessionId} {
-      allow read: if isResourceOwner();
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isResourceOwner();
-    }
-
-    // WeakAreas collection: concept-level mastery & weakness tracking
-    match /weakAreas/{weakAreaId} {
-      allow read: if isResourceOwner();
-      allow create: if isCreatingOwnResource();
-      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
-      allow delete: if isResourceOwner();
-    }
-
-    // System reference collections: readable by clients, writable only by authorized admins
-    match /examProfiles/{profileId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isUser(userId);
+      allow update: if isUser(userId);
+      allow delete: if false;
     }
 
-    match /subjects/{subjectId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // FCM device tokens — used to deliver background Web Push notifications.
+    // Owners manage their own devices; any signed-in member may read tokens
+    // in order to send them a push via Firebase Cloud Messaging (HTTP v1).
+    match /users/{userId}/pushTokens/{tokenId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isUser(userId);
+      // Any member may prune dead device tokens discovered while sending pushes
+      allow delete: if isAuthenticated();
     }
 
-    match /classProfiles/{classId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // App configuration (push sender credentials: clientEmail / privateKey /
+    // optional publicKey). Writable ONLY from the Firebase Console / Admin SDK.
+    match /config/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
     }
 
-    // Default deny all other paths
-    match /{document=**} {
-      allow read, write: if false;
+    // Spaces
+    match /spaces/{spaceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isSpaceAdmin(spaceId) || (isSupportSpace(spaceId) && isAuthenticated());
+      allow delete: if isSpaceAdmin(spaceId);
+
+      // Members subcollection
+      match /members/{memberId} {
+        allow read: if isAuthenticated();
+        // Space admin can add/modify/remove members, or authenticated user can add their own membership for the support space
+        allow create: if isSpaceAdmin(spaceId) || (isUser(memberId) && isSupportSpace(spaceId));
+        allow update: if isSpaceAdmin(spaceId);
+        allow delete: if isSpaceAdmin(spaceId) || isUser(memberId);
+      }
+
+      // Join requests subcollection
+      match /joinRequests/{requestId} {
+        allow read: if isAuthenticated() && (isUser(requestId) || isSpaceAdmin(spaceId));
+        allow create: if isUser(requestId);
+        allow update, delete: if isSpaceAdmin(spaceId) || isUser(requestId);
+      }
+
+      // Public messages within a space
+      match /messages/{messageId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId);
+        allow update: if isSpaceMember(spaceId);
+        allow delete: if isSpaceAdmin(spaceId) || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+      }
+
+      // Files within a space
+      match /files/{fileId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId);
+        allow delete: if isSpaceAdmin(spaceId) || (isAuthenticated() && resource.data.uploadedBy == request.auth.uid);
+      }
+
+      // Announcements within a space
+      match /announcements/{announcementId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create, update, delete: if isSpaceAdmin(spaceId);
+      }
+
+      // Links within a space
+      match /links/{linkId} {
+        allow read: if isSpaceMember(spaceId);
+        allow create: if isSpaceMember(spaceId);
+        allow delete: if isSpaceAdmin(spaceId) || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+      }
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Private Chat Requests
+    //
+    // IMPORTANT: the app calls getDoc() on chatRequests/{uidA_uidB} to CHECK
+    // whether a request already exists between two members. When the document
+    // does NOT exist, Firestore evaluates the rule with `resource == null` —
+    // a rule that dereferences resource.data errors out and DENIES the read,
+    // which broke the entire chat-request flow with
+    // "Missing or insufficient permissions". Non-existent documents carry no
+    // data, so reading them is harmless and must be allowed.
+    match /chatRequests/{requestId} {
+      allow get: if isAuthenticated() && (
+        !exists(/databases/$(database)/documents/chatRequests/$(requestId)) ||
+        get(/databases/$(database)/documents/chatRequests/$(requestId)).data.senderId == request.auth.uid ||
+        get(/databases/$(database)/documents/chatRequests/$(requestId)).data.receiverId == request.auth.uid
+      );
+      // Queries always target existing documents only
+      allow list: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid
+      );
+      allow create: if isAuthenticated() &&
+        request.resource.data.senderId == request.auth.uid;
+      allow update: if isAuthenticated() &&
+        exists(/databases/$(database)/documents/chatRequests/$(requestId)) && (
+          resource.data.receiverId == request.auth.uid ||
+          resource.data.senderId == request.auth.uid
+        );
+      allow delete: if isAuthenticated() && (
+        !exists(/databases/$(database)/documents/chatRequests/$(requestId)) ||
+        resource.data.senderId == request.auth.uid ||
+        resource.data.receiverId == request.auth.uid
+      );
+    }
+
+    // Direct 1-to-1 Conversations
+    //
+    // Like chatRequests above: the app getDoc()s the conversation to check
+    // whether one already exists before creating it. That existence check must
+    // be allowed to return an empty snapshot when the conversation is new.
+    match /conversations/{conversationId} {
+      allow get: if isAuthenticated() && (
+        !exists(/databases/$(database)/documents/conversations/$(conversationId)) ||
+        request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants
+      );
+      allow list: if isAuthenticated() && request.auth.uid in resource.data.participants;
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.participants;
+      allow update: if isAuthenticated() && request.auth.uid in resource.data.participants;
+
+      // Encrypted Private Messages
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+        allow create: if isAuthenticated() && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants &&
+          request.resource.data.senderId == request.auth.uid;
+        allow delete: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+      }
     }
   }
 }

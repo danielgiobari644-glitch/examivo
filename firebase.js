@@ -1,115 +1,124 @@
 /**
- * EXAMIVO — Firebase Configuration & Modular SDK Initialization
- * Uses the exact project configuration specified for examivo.
- * Never uses Firebase Storage; uses Firebase Auth, Cloud Firestore, Functions, and Analytics.
+ * Firebase Modular SDK Setup for HubbleNest
+ * Uses the exact provided project credentials.
+ * Absolutely NO Firebase Storage is imported or initialized.
+ * Includes Firestore IndexedDB Offline Persistence & Firebase Cloud Messaging (FCM).
  */
-
-import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  updateProfile
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail, 
+  updateProfile,
+  onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { 
   getFirestore,
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  collection, 
+  doc, 
+  getDoc, 
+  getDocs, 
+  setDoc, 
+  updateDoc, 
+  deleteDoc, 
+  addDoc, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  onSnapshot, 
+  serverTimestamp, 
+  increment,
+  arrayUnion,
+  arrayRemove
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 import {
-  getFunctions,
-  httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-functions.js";
-import {
-  getAnalytics,
-  isSupported as isAnalyticsSupported,
-  logEvent
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js";
+  getMessaging,
+  getToken,
+  onMessage,
+  isSupported as isMessagingSupported
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js";
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyAgbjUW2xF324nxJqcMoO3Yajq1HmRS088",
-  authDomain: "examivo.firebaseapp.com",
-  projectId: "examivo",
-  storageBucket: "examivo.firebasestorage.app",
-  messagingSenderId: "789497850627",
-  appId: "1:789497850627:web:ea968e6b87f22b5e39d736",
-  measurementId: "G-0MMN146SF8"
+const firebaseConfig = {
+  apiKey: "AIzaSyDfMNtJ9fl_4kWdNlLcPQlhG5kuxR35CO4",
+  authDomain: "hubblenest.firebaseapp.com",
+  projectId: "hubblenest",
+  messagingSenderId: "290433427078",
+  appId: "1:290433427078:web:5d4649f35395bdae919307",
+  measurementId: "G-MNWYE7T4PG"
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const functions = getFunctions(app);
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ prompt: "select_account" });
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
-let analyticsInstance = null;
-if (typeof window !== "undefined") {
-  isAnalyticsSupported()
-    .then((supported) => {
-      if (supported) {
-        analyticsInstance = getAnalytics(app);
-      }
+// Enable Real Firestore IndexedDB Offline Persistence
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager()
     })
-    .catch(() => {
-      // Analytics blocked by browser privacy settings; fail silently
-    });
+  });
+} catch (e) {
+  console.warn('Could not initialize multi-tab persistent cache, falling back to standard Firestore:', e);
+  firestoreInstance = getFirestore(app);
 }
+export const db = firestoreInstance;
 
-/**
- * Safely log product analytics events without collecting unnecessary PII
- * Supported events: app_opened, practice_started, material_uploaded,
- * exam_generated, exam_completed, practice_repeated, auth_completed
- */
-export function trackEvent(eventName, eventParams = {}) {
+export const googleProvider = new GoogleAuthProvider();
+
+// Messaging (FCM)
+let messagingInstance = null;
+export async function getFcmMessaging() {
+  if (messagingInstance) return messagingInstance;
   try {
-    if (analyticsInstance) {
-      logEvent(analyticsInstance, eventName, eventParams);
+    const supported = await isMessagingSupported();
+    if (supported) {
+      messagingInstance = getMessaging(app);
+      return messagingInstance;
     }
-  } catch (_) {
-    // Non-blocking analytics
+  } catch (err) {
+    console.warn('FCM messaging is not supported in this environment:', err);
   }
+  return null;
 }
 
 export {
-  app,
-  auth,
-  db,
-  functions,
-  googleProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
+  sendPasswordResetEmail,
   updateProfile,
+  onAuthStateChanged,
   collection,
   doc,
-  setDoc,
   getDoc,
   getDocs,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
+  addDoc,
   query,
   where,
   orderBy,
   limit,
+  onSnapshot,
   serverTimestamp,
-  httpsCallable
+  increment,
+  arrayUnion,
+  arrayRemove,
+  getToken,
+  onMessage
 };
