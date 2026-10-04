@@ -1,60 +1,35 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
-  "functions": [
-    {
-      "source": ".",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.zip"
-      ]
-    }
-  ],
   "hosting": {
     "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
       "firestore.rules",
       "firestore.indexes.json",
-      "functions-index.js",
-      "functions-ai.js",
-      "package.json",
-      "package-lock.json",
-      "**/.*",
-      "**/node_modules/**",
-      "*.zip"
-    ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "api"
-      }
+      "README.md",
+      "functions/node_modules/**",
+      "functions/.git/**"
     ],
     "headers": [
       {
-        "source": "/service-worker.js",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
+        "source": "**/*.@(js|css|svg|png|woff2)",
+        "headers": [{ "key": "Cache-Control", "value": "max-age=604800" }]
       },
       {
-        "source": "**/*.@(css|js|svg|json)",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=3600"
-          }
-        ]
+        "source": "/service-worker.js",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/index.html",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": {
+    "source": "functions"
   }
 }

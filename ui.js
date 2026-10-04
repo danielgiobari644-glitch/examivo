@@ -1,482 +1,394 @@
-/**
- * EXAMIVO — Unified UI Engine, AI Intelligence Core & Interaction Primitives
- * Implements renderAIStatus(state), Theme Switcher, Toasts, Modals & Smooth Transitions
- */
+/* ============================================================
+   EXAMIVO — UI kit: theme, toasts, modals, AI states, transitions
+   ============================================================ */
 
-import { escapeHtml } from "./utils.js";
+import { $, el } from './utils.js';
+import { STORAGE_KEYS } from './constants.js';
 
-export const AI_STATES = {
-  idle: {
-    label: "Intelligence Ready",
-    detail: "Standing by for study material or examination blueprint"
-  },
-  reading: {
-    label: "Reading Material",
-    detail: "Extracting structure, definitions, formulas, and visual notes"
-  },
-  thinking: {
-    label: "EXAMIVO is Thinking",
-    detail: "Synthesizing curriculum level and examination requirements"
-  },
-  analyzing: {
-    label: "Analyzing Patterns",
-    detail: "Prioritizing high-yield concepts and examination focus areas"
-  },
-  generating: {
-    label: "Building Questions",
-    detail: "Crafting original, class-calibrated examination questions"
-  },
-  checking: {
-    label: "Checking Quality",
-    detail: "Validating accuracy, distractors, and marking explanations"
-  },
-  complete: {
-    label: "Analysis Complete",
-    detail: "Examination blueprint verified and ready"
-  },
-  error: {
-    label: "Action Interrupted",
-    detail: "EXAMIVO encountered an issue completing that request"
-  }
-};
+/* ============================================================
+   THEME — dark (default) / light / system, remembered locally
+   ============================================================ */
 
-/**
- * Reusable EXAMIVO AI Visual Identity Component
- * Renders an abstract AI intelligence core (luminous nucleus, subtle orbital rings,
- * thin vector lines, signal nodes, and soft radial glow).
- *
- * @param {string} state - One of: idle | reading | thinking | analyzing | generating | checking | complete | error
- * @param {HTMLElement|string} [target] - DOM element or selector to render into (returns HTML string if omitted)
- * @param {Object} [options] - { size: 'xs'|'sm'|'md'|'lg'|'xl', showLabel: boolean, customLabel: string }
- */
-export function renderAIStatus(state = "idle", target = null, options = {}) {
-  const validState = AI_STATES[state] ? state : "idle";
-  const stateMeta = AI_STATES[validState];
-  const size = options.size || "md";
-  const showLabel = options.showLabel !== undefined ? options.showLabel : true;
-  const labelText = options.customLabel || stateMeta.label;
+const themeMeta = document.createElement('meta');
+themeMeta.name = 'theme-color';
+document.head.appendChild(themeMeta);
 
-  const coreSvgMarkup = `
-    <div class="ai-core-wrap" data-ai-widget="true">
-      <div class="ai-core size-${escapeHtml(size)}" data-state="${escapeHtml(validState)}" role="status" aria-label="EXAMIVO AI status: ${escapeHtml(labelText)}">
-        <div class="ai-core-halo"></div>
-        <svg class="ai-core-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <radialGradient id="aiCoreGrad_${escapeHtml(size)}" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#A5B4FC" stop-opacity="0.95"/>
-              <stop offset="48%" stop-color="#6366F1" stop-opacity="0.55"/>
-              <stop offset="100%" stop-color="#090B10" stop-opacity="0"/>
-            </radialGradient>
-            <linearGradient id="aiRingA_${escapeHtml(size)}" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#6366F1" stop-opacity="0.9"/>
-              <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.45"/>
-              <stop offset="100%" stop-color="#6366F1" stop-opacity="0.08"/>
-            </linearGradient>
-            <linearGradient id="aiRingB_${escapeHtml(size)}" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.85"/>
-              <stop offset="60%" stop-color="#818CF8" stop-opacity="0.3"/>
-              <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.05"/>
-            </linearGradient>
-          </defs>
-
-          <!-- Outer Precision Telemetry Ring -->
-          <g class="core-outer-ring">
-            <circle cx="60" cy="60" r="50" stroke="url(#aiRingA_${escapeHtml(size)})" stroke-width="1.2" stroke-dasharray="16 7 4 7"/>
-            <circle cx="60" cy="10" r="2.4" fill="#818CF8" class="core-node"/>
-            <circle cx="60" cy="110" r="2.2" fill="#38BDF8" class="core-node"/>
-          </g>
-
-          <!-- Orbital Ellipse A -->
-          <g class="core-orbit-a">
-            <ellipse cx="60" cy="60" rx="41" ry="22" transform="rotate(-28 60 60)" stroke="url(#aiRingB_${escapeHtml(size)})" stroke-width="1.35"/>
-            <circle cx="24" cy="41" r="3" fill="#38BDF8" class="core-node"/>
-            <circle cx="96" cy="79" r="2.6" fill="#A5B4FC" class="core-node"/>
-          </g>
-
-          <!-- Orbital Ellipse B -->
-          <g class="core-orbit-b">
-            <ellipse cx="60" cy="60" rx="41" ry="22" transform="rotate(32 60 60)" stroke="url(#aiRingA_${escapeHtml(size)})" stroke-width="1.35"/>
-            <circle cx="93" cy="39" r="2.8" fill="#818CF8" class="core-node"/>
-            <circle cx="27" cy="81" r="2.3" fill="#38BDF8" class="core-node"/>
-          </g>
-
-          <!-- Thin Axis Signal Lines -->
-          <line x1="60" y1="16" x2="60" y2="32" stroke="#818CF8" stroke-opacity="0.38" stroke-width="1.1" stroke-linecap="round"/>
-          <line x1="60" y1="88" x2="60" y2="104" stroke="#818CF8" stroke-opacity="0.38" stroke-width="1.1" stroke-linecap="round"/>
-          <line x1="16" y1="60" x2="32" y2="60" stroke="#38BDF8" stroke-opacity="0.38" stroke-width="1.1" stroke-linecap="round"/>
-          <line x1="88" y1="60" x2="104" y2="60" stroke="#38BDF8" stroke-opacity="0.38" stroke-width="1.1" stroke-linecap="round"/>
-
-          <!-- Inner Containment Ring -->
-          <circle cx="60" cy="60" r="24" stroke="#818CF8" stroke-opacity="0.32" stroke-width="1"/>
-
-          <!-- Luminous Intelligence Nucleus -->
-          <g class="core-nucleus">
-            <circle cx="60" cy="60" r="22" fill="url(#aiCoreGrad_${escapeHtml(size)})"/>
-            <circle cx="60" cy="60" r="10.5" fill="#6366F1"/>
-            <circle cx="60" cy="60" r="5.2" fill="#EEF2FF"/>
-          </g>
-        </svg>
-      </div>
-      ${
-        showLabel
-          ? `<div class="ai-core-status-pill" data-state="${escapeHtml(validState)}">
-               <span class="ai-core-status-dot"></span>
-               <span class="ai-core-status-text">${escapeHtml(labelText)}</span>
-             </div>`
-          : ""
-      }
-    </div>
-  `;
-
-  if (!target) {
-    return coreSvgMarkup;
-  }
-
-  const el = typeof target === "string" ? document.querySelector(target) : target;
-  if (!el) return coreSvgMarkup;
-
-  // If element already contains an ai-core, smoothly update its state attribute instead of recreating DOM
-  const existingCore = el.querySelector(".ai-core");
-  if (existingCore) {
-    const prevState = existingCore.getAttribute("data-state");
-    existingCore.setAttribute("data-state", validState);
-    existingCore.setAttribute("aria-label", `EXAMIVO AI status: ${labelText}`);
-    if (prevState !== validState) {
-      existingCore.classList.add("stage-shift");
-      setTimeout(() => existingCore.classList.remove("stage-shift"), 280);
-    }
-    const textEl = el.querySelector(".ai-core-status-text");
-    if (textEl) textEl.textContent = labelText;
-    const pillEl = el.querySelector(".ai-core-status-pill");
-    if (pillEl) pillEl.setAttribute("data-state", validState);
-    return coreSvgMarkup;
-  }
-
-  el.innerHTML = coreSvgMarkup;
-  return coreSvgMarkup;
+function systemTheme() {
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 }
 
-// Expose globally as required by specification Section 11
-if (typeof window !== "undefined") {
-  window.renderAIStatus = renderAIStatus;
+export function resolveTheme(mode) {
+  return mode === 'system' ? systemTheme() : mode;
 }
 
-/* ==========================================================================
-   THEME MANAGER (Dark Default | Light | System)
-   ========================================================================== */
+export function getTheme() {
+  return localStorage.getItem(STORAGE_KEYS.theme) || 'dark';
+}
 
-const THEME_STORAGE_KEY = "examivo_theme";
+/* Apply the remembered theme as early as this module loads. */
+applyTheme();
 
-export function initTheme() {
-  const saved = localStorage.getItem(THEME_STORAGE_KEY) || "dark";
-  applyTheme(saved);
-
-  // Listen for OS theme changes when in 'system' mode
-  if (window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
-      const currentPref = localStorage.getItem(THEME_STORAGE_KEY) || "dark";
-      if (currentPref === "system") {
-        applyTheme("system");
-      }
-    });
-  }
-
-  // Bind theme switcher buttons if present
-  document.querySelectorAll("[data-theme-choice]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const choice = btn.getAttribute("data-theme-choice");
-      setTheme(choice);
-    });
-  });
-
-  updateThemeButtonsUI(saved);
+export function applyTheme() {
+  const mode = getTheme();
+  const resolved = resolveTheme(mode);
+  document.documentElement.dataset.theme = resolved;
+  themeMeta.content = resolved === 'light' ? '#f5f6f9' : '#0a0b10';
+  return resolved;
 }
 
 export function setTheme(mode) {
-  const validMode = ["dark", "light", "system"].includes(mode) ? mode : "dark";
-  localStorage.setItem(THEME_STORAGE_KEY, validMode);
-  applyTheme(validMode);
-  updateThemeButtonsUI(validMode);
+  localStorage.setItem(STORAGE_KEYS.theme, mode);
+  applyTheme();
+  document.dispatchEvent(new CustomEvent('examivo:theme', { detail: { mode, resolved: resolveTheme(mode) } }));
 }
 
-function applyTheme(mode) {
-  const root = document.documentElement;
-  if (mode === "light") {
-    root.setAttribute("data-theme", "light");
-  } else if (mode === "system") {
-    const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-    if (prefersLight) {
-      root.setAttribute("data-theme", "light");
-    } else {
-      root.removeAttribute("data-theme");
-    }
-  } else {
-    root.removeAttribute("data-theme");
-  }
-}
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+  if (getTheme() === 'system') applyTheme();
+});
 
-function updateThemeButtonsUI(mode) {
-  document.querySelectorAll("[data-theme-choice]").forEach((btn) => {
-    const choice = btn.getAttribute("data-theme-choice");
-    btn.classList.toggle("active", choice === mode);
-    btn.setAttribute("aria-pressed", choice === mode ? "true" : "false");
-  });
-}
-
-/* ==========================================================================
-   TOAST NOTIFICATION SYSTEM
-   ========================================================================== */
-
-function ensureToastRegion() {
-  let region = document.getElementById("examivo-toast-region");
-  if (!region) {
-    region = document.createElement("div");
-    region.id = "examivo-toast-region";
-    region.className = "toast-region";
-    region.setAttribute("aria-live", "polite");
-    document.body.appendChild(region);
-  }
-  return region;
-}
-
-/**
- * Display an elegant toast notification
- * @param {string} message - Human-readable message ("Exam saved.", "Answer recorded.", etc.)
- * @param {'info'|'success'|'warning'|'danger'} [type='info']
- * @param {number} [duration=3600]
- */
-export function showToast(message, type = "info", duration = 3600) {
-  const region = ensureToastRegion();
-  const toast = document.createElement("div");
-  toast.className = `toast toast-${type}`;
-  toast.setAttribute("role", "status");
-
-  toast.innerHTML = `
-    <span>${escapeHtml(message)}</span>
-    <button type="button" class="modal-close" aria-label="Dismiss notification">✕</button>
-  `;
-
-  const closeBtn = toast.querySelector("button");
-  const removeToast = () => {
-    toast.classList.remove("visible");
-    setTimeout(() => {
-      if (toast.parentNode) toast.parentNode.removeChild(toast);
-    }, 220);
+/** Theme cycle control (dark → light → system). Returns current mode. */
+export function createThemeToggle(button) {
+  const ICONS = {
+    dark:
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
+    light:
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    system:
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>',
   };
-
-  closeBtn.addEventListener("click", removeToast);
-  region.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add("visible");
+  const LABEL = { dark: 'Dark', light: 'Light', system: 'System' };
+  const render = () => {
+    const mode = getTheme();
+    button.innerHTML = ICONS[mode] + `<span class="theme-label">${LABEL[mode]}</span>`;
+    button.setAttribute('aria-label', `Theme: ${LABEL[mode]}. Click to change.`);
+    button.dataset.mode = mode;
+  };
+  render();
+  button.addEventListener('click', () => {
+    const order = ['dark', 'light', 'system'];
+    const next = order[(order.indexOf(getTheme()) + 1) % order.length];
+    setTheme(next);
+    render();
   });
-
-  if (duration > 0) {
-    setTimeout(removeToast, duration);
-  }
+  document.addEventListener('examivo:theme', render);
 }
 
-/* ==========================================================================
-   MODAL SYSTEM (Accessible, Escape & Backdrop Support)
-   ========================================================================== */
+/* ============================================================
+   AI INTELLIGENCE CORE — the reusable EXAMIVO AI visual
+   States: idle | reading | thinking | analyzing | generating |
+           checking | complete | error
+   ============================================================ */
 
-export function openModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-  const firstInput = modal.querySelector("input, button:not(.modal-close), select, textarea");
-  if (firstInput) {
-    setTimeout(() => firstInput.focus(), 80);
-  }
+const CORE_SVG = `
+<svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+  <g class="ring ring-1">
+    <circle cx="50" cy="50" r="44" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="2.5 7" stroke-linecap="round"/>
+    <circle cx="50" cy="6" r="2.4" fill="var(--primary-strong)"/>
+  </g>
+  <g class="ring ring-2">
+    <circle cx="50" cy="50" r="32" stroke="var(--primary)" stroke-opacity="0.4" stroke-width="1.1" stroke-dasharray="14 8" stroke-linecap="round"/>
+    <circle cx="82" cy="50" r="2" fill="var(--primary-strong)" fill-opacity="0.9"/>
+  </g>
+  <g class="ring ring-3">
+    <circle cx="50" cy="50" r="20.5" stroke="var(--primary)" stroke-opacity="0.85" stroke-width="1.4"/>
+    <circle cx="36.5" cy="62.5" r="1.6" fill="var(--primary-strong)" fill-opacity="0.75"/>
+  </g>
+  <g class="core-dot">
+    <circle cx="50" cy="50" r="9" fill="var(--background)"/>
+    <circle cx="50" cy="50" r="6.6" fill="var(--primary)"/>
+    <circle cx="47.9" cy="47.9" r="1.9" fill="#f0fdfa"/>
+  </g>
+</svg>`;
+
+export function createAICore({ size = 96, state = 'idle', label = '' } = {}) {
+  const core = el('div', {
+    class: 'ai-core',
+    dataset: { state },
+    role: 'img',
+    'aria-label': label || `EXAMIVO intelligence core, ${state}`,
+  });
+  core.style.setProperty('--core-size', typeof size === 'number' ? `${size}px` : size);
+  core.innerHTML = `<div class="halo"></div><div class="core-orbits">${CORE_SVG}</div>`;
+  return core;
 }
 
-export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
+/** Update an existing .ai-core element's state. */
+export function setAIState(coreEl, state) {
+  if (!coreEl) return;
+  coreEl.dataset.state = state;
+  coreEl.setAttribute('aria-label', `EXAMIVO intelligence core, ${state}`);
 }
 
-export function initModals() {
-  document.querySelectorAll(".modal-backdrop").forEach((backdrop) => {
-    backdrop.addEventListener("click", (e) => {
-      if (e.target === backdrop) {
-        backdrop.classList.remove("open");
-        backdrop.setAttribute("aria-hidden", "true");
-      }
-    });
-  });
+/** renderAIStatus — the shared status line used across the app. */
+export function renderAIStatus(container, state, text) {
+  if (!container) return;
+  container.dataset.state = state;
+  container.innerHTML = '';
+  const line = el(
+    'span',
+    { class: 'ai-status-line', dataset: { state } },
+    el('span', { class: 'pulse-dot', 'aria-hidden': 'true' }),
+    el('span', { text: text || state })
+  );
+  container.appendChild(line);
+}
 
-  document.querySelectorAll("[data-close-modal]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const targetId = btn.getAttribute("data-close-modal");
-      if (targetId) {
-        closeModal(targetId);
-      } else {
-        const parentModal = btn.closest(".modal-backdrop");
-        if (parentModal) {
-          parentModal.classList.remove("open");
-          parentModal.setAttribute("aria-hidden", "true");
-        }
-      }
-    });
-  });
+/* ============================================================
+   AI LOADING OVERLAY — full-screen staged experience
+   Driven by REAL pipeline progress: a stage only completes when
+   the corresponding work actually completes.
+   ============================================================ */
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      document.querySelectorAll(".modal-backdrop.open").forEach((m) => {
-        m.classList.remove("open");
-        m.setAttribute("aria-hidden", "true");
+export function createAILoading({ title = 'EXAMIVO IS THINKING', subtitle = '', stages = [] } = {}) {
+  const overlay = el('div', { class: 'ai-overlay', role: 'status', 'aria-live': 'polite' });
+  const core = createAICore({ size: 120, state: 'idle' });
+  const stageEls = stages.map((label) =>
+    el('div', { class: 'ai-stage' }, el('span', { class: 's-icon', 'aria-hidden': 'true' }), el('span', { text: label }))
+  );
+  const subEl = el('p', { class: 'ai-overlay-sub', text: subtitle });
+  const stagesEl = el('div', { class: 'ai-stages' }, stageEls);
+  const statusLine = el('div', { class: 'ai-status-holder' });
+  const inner = el(
+    'div',
+    { class: 'ai-overlay-inner' },
+    core,
+    el('h2', { class: 'ai-overlay-title', text: title }),
+    subEl,
+    stagesEl,
+    statusLine
+  );
+  overlay.appendChild(inner);
+
+  let current = -1;
+  let closed = false;
+
+  const api = {
+    overlay,
+    core,
+    /** Activate stage i (0-based). */
+    start(i, note) {
+      current = i;
+      setAIState(core, ['reading', 'analyzing', 'generating', 'checking'][i] || 'thinking');
+      stageEls.forEach((s, idx) => s.classList.toggle('active', idx === i));
+      if (note) subEl.textContent = note;
+    },
+    /** Mark stage i complete. */
+    done(i) {
+      stageEls[i]?.classList.remove('active');
+      stageEls[i]?.classList.add('done');
+    },
+    fail(message) {
+      stageEls[current]?.classList.remove('active');
+      stageEls[current]?.classList.add('failed');
+      setAIState(core, 'error');
+      subEl.textContent = message || 'Something went wrong.';
+      renderAIStatus(statusLine, 'error', 'EXAMIVO stopped — you can try again.');
+    },
+    complete(note) {
+      stageEls.forEach((s) => {
+        s.classList.remove('active');
+        s.classList.add('done');
       });
-    }
-  });
-}
-
-/* ==========================================================================
-   SMOOTH PAGE TRANSITIONS
-   ========================================================================== */
-
-export function navigateTo(url) {
-  const shell = document.querySelector(".page-shell") || document.body;
-  shell.classList.add("page-transition-exit");
-  setTimeout(() => {
-    window.location.href = url;
-  }, 170);
-}
-
-export function initSmoothLinks() {
-  const shell = document.querySelector(".page-shell");
-  if (shell) {
-    shell.classList.add("page-transition-enter");
-  }
-
-  document.querySelectorAll("a[data-smooth-nav]").forEach((link) => {
-    link.addEventListener("click", (e) => {
-      const href = link.getAttribute("href");
-      if (!href || href.startsWith("#") || href.startsWith("http") || e.metaKey || e.ctrlKey) {
-        return;
-      }
-      e.preventDefault();
-      navigateTo(href);
-    });
-  });
-}
-
-/* ==========================================================================
-   PWA SERVICE WORKER & NETWORK CONNECTIVITY MONITOR
-   ========================================================================== */
-
-export function initPWAAndNetwork() {
-  if ("serviceWorker" in navigator && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register("./service-worker.js")
-        .then((reg) => {
-          reg.update().catch(() => {});
-        })
-        .catch(() => {
-          // Non-blocking if SW registration is restricted
-        });
-    });
-  }
-
-  const updateNetStatus = (notify = false) => {
-    const isOnline = navigator.onLine;
-    document.querySelectorAll(".net-pill").forEach((pill) => {
-      pill.classList.toggle("hidden", isOnline);
-    });
-    if (notify) {
-      if (isOnline) {
-        showToast("Connection restored.", "success");
-      } else {
-        showToast("You are offline. Saved history remains available; AI generation requires an internet connection.", "warning", 5000);
-      }
-    }
+      setAIState(core, 'complete');
+      subEl.textContent = note || 'Ready.';
+    },
+    note(text) {
+      subEl.textContent = text;
+    },
+    async close({ delay = 260 } = {}) {
+      if (closed) return;
+      closed = true;
+      overlay.classList.add('closing');
+      await new Promise((r) => setTimeout(r, delay));
+      overlay.remove();
+    },
   };
 
-  window.addEventListener("online", () => updateNetStatus(true));
-  window.addEventListener("offline", () => updateNetStatus(true));
-  updateNetStatus(false);
+  return api;
 }
 
-/* ==========================================================================
-   SHARED AUTHENTICATION MODAL INJECTION
-   ========================================================================== */
+/* ============================================================
+   TOASTS
+   ============================================================ */
 
-export function ensureAuthModal() {
-  if (document.getElementById("auth-modal")) return;
+let toastRegion = null;
+const TOAST_ICONS = { success: '✓', error: '!', info: 'i', warning: '!' };
 
-  const modalHtml = `
-    <div class="modal-backdrop" id="auth-modal" aria-hidden="true" role="dialog" aria-labelledby="auth-modal-title">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <div>
-            <h2 class="modal-title" id="auth-modal-title">Save Your Preparation</h2>
-            <p class="modal-subtitle" id="auth-modal-subtitle">Sign in to sync your exams, weak-area diagnostics, and progress across all devices.</p>
-          </div>
-          <button type="button" class="modal-close" data-close-modal="auth-modal" aria-label="Close modal">✕</button>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:1rem;">
-          <button type="button" class="btn btn-secondary" id="google-signin-btn" style="width:100%; justify-content:center; padding:0.8rem;">
-            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.8C6.2 7.2 8.9 5 12 5z"/>
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.6l3.7 2.9c2.2-2 3.7-5 3.7-8.7z"/>
-              <path fill="#FBBC05" d="M5.3 14.8c-.2-.8-.4-1.6-.4-2.5s.2-1.7.4-2.5L1.6 7C.6 9 0 11.2 0 12.3s.6 3.3 1.6 5.3l3.7-2.8z"/>
-              <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.1 0-5.8-2.1-6.7-5l-3.7 2.8C3.5 19.9 7.4 23 12 23z"/>
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <div style="display:flex; align-items:center; gap:0.75rem; color:var(--text-muted); font-size:0.78rem;">
-            <div style="flex:1; height:1px; background:var(--border);"></div>
-            <span>OR EMAIL</span>
-            <div style="flex:1; height:1px; background:var(--border);"></div>
-          </div>
-
-          <form id="email-auth-form" style="display:flex; flex-direction:column; gap:0.85rem;">
-            <div class="form-group" id="auth-name-group" style="display:none;">
-              <label class="form-label" for="auth-name-input">Full Name</label>
-              <input type="text" id="auth-name-input" class="form-input" placeholder="e.g. Chidi Okafor" autocomplete="name"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="auth-email-input">Email Address</label>
-              <input type="email" id="auth-email-input" class="form-input" placeholder="student@example.com" required autocomplete="email"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="auth-password-input">Password</label>
-              <input type="password" id="auth-password-input" class="form-input" placeholder="At least 6 characters" required minlength="6" autocomplete="current-password"/>
-            </div>
-            <div id="auth-error-msg" style="display:none; font-size:0.83rem; color:var(--danger); padding:0.55rem 0.75rem; background:var(--danger-soft); border-radius:var(--radius-xs);"></div>
-            <button type="submit" class="btn btn-primary" id="email-auth-submit" style="width:100%;">Sign In</button>
-          </form>
-
-          <div style="text-align:center; font-size:0.85rem; color:var(--text-secondary);">
-            <span id="auth-toggle-prompt">Need an EXAMIVO account?</span>
-            <button type="button" id="auth-toggle-mode-btn" style="color:var(--primary); font-weight:700; margin-left:0.35rem;">Create Account</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.insertAdjacentHTML("beforeend", modalHtml);
+export function toast(message, type = 'info', { duration = 3400 } = {}) {
+  if (!toastRegion) {
+    toastRegion = el('div', { class: 'toast-region', 'aria-live': 'polite', role: 'status' });
+    document.body.appendChild(toastRegion);
+  }
+  const item = el(
+    'div',
+    { class: `toast ${type}` },
+    el('span', { class: 't-icon', text: TOAST_ICONS[type] || 'i', 'aria-hidden': 'true' }),
+    el('span', { text: message })
+  );
+  toastRegion.appendChild(item);
+  const leave = () => {
+    item.classList.add('leaving');
+    setTimeout(() => item.remove(), 240);
+  };
+  const timer = setTimeout(leave, duration);
+  item.addEventListener('click', () => {
+    clearTimeout(timer);
+    leave();
+  });
+  return item;
 }
 
-/**
- * Initialize common shell behaviors across all pages
- */
-export function initCommonUI() {
-  initTheme();
-  ensureAuthModal();
-  initModals();
-  initSmoothLinks();
-  initPWAAndNetwork();
+/* ============================================================
+   MODALS
+   ============================================================ */
 
-  // Render mini AI core in navigation brand if present
-  const brandCores = document.querySelectorAll(".brand-core-mini");
-  brandCores.forEach((el) => {
-    renderAIStatus("idle", el, { size: "xs", showLabel: false });
+let openModals = [];
+
+export function openModal({ title = '', body = '', footer = [], wide = false, onClose = null } = {}) {
+  const overlay = el('div', { class: 'modal-overlay', role: 'dialog', 'aria-modal': 'true' });
+  const modal = el(
+    'div',
+    { class: 'modal', style: wide ? 'width:min(680px,100%)' : '' },
+    el(
+      'div',
+      { class: 'modal-head' },
+      el('h3', { text: title }),
+      el(
+        'button',
+        {
+          class: 'modal-close',
+          'aria-label': 'Close dialog',
+          html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+        },
+      )
+    ),
+    el('div', { class: 'modal-body' }),
+    footer.length ? el('div', { class: 'modal-foot' }, footer) : null
+  );
+  const bodyEl = modal.querySelector('.modal-body');
+  if (typeof body === 'string') bodyEl.innerHTML = body;
+  else bodyEl.appendChild(body);
+  overlay.appendChild(modal);
+
+  function close() {
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 160);
+    openModals = openModals.filter((m) => m !== api);
+    document.removeEventListener('keydown', onKey);
+    onClose?.();
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+  }
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+  modal.querySelector('.modal-close').addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(overlay);
+  const api = { overlay, modal, close, bodyEl };
+  openModals.push(api);
+  const firstFocusable = modal.querySelector('input, textarea, button.btn, .modal-close');
+  setTimeout(() => firstFocusable?.focus(), 60);
+  return api;
+}
+
+export function confirmModal({ title = 'Are you sure?', message = '', confirmLabel = 'Confirm', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => {
+      if (settled) return;
+      settled = true;
+      resolve(v);
+    };
+    const cancelBtn = el('button', { class: 'btn btn-ghost', text: 'Cancel', onclick: () => { done(false); api.close(); } });
+    const okBtn = el(
+      'button',
+      {
+        class: `btn ${danger ? 'btn-danger' : 'btn-primary'}`,
+        text: confirmLabel,
+        onclick: () => { done(true); api.close(); },
+      }
+    );
+    const api = openModal({
+      title,
+      body: el('p', { style: 'margin:0', text: message }),
+      footer: [cancelBtn, okBtn],
+      onClose: () => done(false),
+    });
   });
 }
+
+/* ============================================================
+   MISC UI HELPERS
+   ============================================================ */
+
+export function emptyState({ icon = '✦', title, message, actionLabel, onAction } = {}) {
+  return el(
+    'div',
+    { class: 'empty-state' },
+    el('div', { class: 'es-visual', text: icon, 'aria-hidden': 'true' }),
+    el('h3', { text: title }),
+    el('p', { text: message }),
+    actionLabel ? el('button', { class: 'btn btn-primary', text: actionLabel, onclick: onAction }) : null
+  );
+}
+
+export function revealPage() {
+  document.documentElement.classList.add('booted');
+  const main = document.querySelector('main') || document.body;
+  main.classList.add('page-enter');
+}
+
+/* ---------- Connection awareness ---------- */
+export function initNetworkAwareness() {
+  const banner = el('div', { class: 'offline-banner', text: 'You are offline. Saved content is available — generating and syncing need a connection.', 'aria-live': 'polite' });
+  document.body.appendChild(banner);
+  const sync = () => banner.classList.toggle('show', !navigator.onLine);
+  window.addEventListener('online', () => {
+    sync();
+    toast('Connection restored.', 'success');
+  });
+  window.addEventListener('offline', sync);
+  sync();
+}
+
+/** Small inline SVG icon set (line style, 1.7 stroke). */
+export const ICONS = {
+  arrowRight:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>',
+  arrowLeft:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6 6-6-6 6-6"/></svg>',
+  flag:
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>',
+  check:
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  plus:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  upload:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>',
+  doc:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/></svg>',
+  image:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4-4-8 9"/></svg>',
+  text:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>',
+  topic:
+    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 6-3 2 2-6 3-2z"/></svg>',
+  clock:
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>',
+  target:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>',
+  book:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  chart:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="m7 13 4-4 4 3 5-6"/></svg>',
+  history:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>',
+  spark:
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
+  logout:
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>',
+  trash:
+    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+};

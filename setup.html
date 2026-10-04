@@ -1,380 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080A0F" />
-  <meta name="description" content="Set up your tailored AI examination practice on EXAMIVO." />
-  <title>Guided Exam Setup — EXAMIVO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>New Practice — EXAMIVO</title>
+  <meta name="description" content="Set up your EXAMIVO practice — class, subject, examination and material." />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+  <meta name="theme-color" content="#0a0b10" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="logo.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="global.css" />
-  <link rel="stylesheet" href="animations.css" />
-  <link rel="stylesheet" href="setup.css" />
+  <script>try{var m=localStorage.getItem("examivo.theme")||"dark";if(m==="system")m=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=m;}catch(e){}</script>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/setup.css" />
 </head>
-<body data-page="setup">
-  <!-- Top Navigation -->
-  <header class="top-nav">
-    <div class="nav-inner">
-      <a href="index.html" class="brand-link" data-smooth-nav>
-        <span class="brand-core-mini" aria-hidden="true"></span>
-        <span>EXAMIVO</span>
-      </a>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="setup-body">
 
-      <nav class="nav-links" aria-label="Primary navigation">
-        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
-        <a href="setup.html" class="nav-link active">New Practice</a>
-        <a href="history.html" class="nav-link" data-smooth-nav>History</a>
-      </nav>
-
-      <div class="nav-actions">
-        <span class="net-pill hidden" role="status">Offline</span>
-
-        <div class="theme-switcher" role="group" aria-label="Color theme">
-          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          </button>
-        </div>
-
-        <div id="nav-auth-slot"></div>
+    <header class="setup-topbar">
+      <div class="container">
+        <button class="setup-back" data-back hidden>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+          Back
+        </button>
+        <a class="brand" href="app.html" aria-label="EXAMIVO">
+          <img src="assets/logo/logo.svg" alt="EXAMIVO" width="150" height="28" />
+        </a>
+        <button class="theme-btn" data-theme-toggle aria-label="Change theme"></button>
       </div>
-    </div>
-  </header>
+      <div class="progress-rail" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="25">
+        <div class="bar" style="width:25%"></div>
+      </div>
+    </header>
 
-  <main class="page-shell">
-    <div class="container-narrow setup-main">
-      <!-- Progressive Breadcrumb Bar -->
-      <nav class="setup-progress-bar" aria-label="Setup steps">
-        <button type="button" class="setup-step-indicator active" data-step-nav="1">
-          <span class="step-num-circle">1</span>
-          <span>Class Level</span>
-        </button>
-        <button type="button" class="setup-step-indicator" data-step-nav="2">
-          <span class="step-num-circle">2</span>
-          <span>Subject</span>
-        </button>
-        <button type="button" class="setup-step-indicator" data-step-nav="3">
-          <span class="step-num-circle">3</span>
-          <span>Examination</span>
-        </button>
-        <button type="button" class="setup-step-indicator" data-step-nav="4">
-          <span class="step-num-circle">4</span>
-          <span>Study Material</span>
-        </button>
-        <button type="button" class="setup-step-indicator" data-step-nav="5" disabled>
-          <span class="step-num-circle">5</span>
-          <span>Exam Focus</span>
-        </button>
-      </nav>
-
-      <!-- Active Selection Chips -->
-      <div class="selection-summary-strip" id="selection-summary-strip"></div>
-
-      <!-- Error Region if needed -->
-      <div id="setup-error-region" style="display:none;"></div>
-
-      <!-- STEP 1: WHAT ARE YOU PREPARING FOR? -->
-      <section class="wizard-step active" data-step="1" aria-labelledby="step1-title">
-        <div class="wizard-header">
-          <div class="wizard-eyebrow">Step 1 of 4 · Class Profile</div>
-          <h1 class="wizard-title" id="step1-title">What are you preparing for?</h1>
-          <p class="wizard-subtitle">
-            EXAMIVO adapts vocabulary, question reasoning, and explanations to your exact academic level.
-          </p>
-        </div>
-
-        <div id="class-groups-container"></div>
-      </section>
-
-      <!-- STEP 2: WHAT SUBJECT? -->
-      <section class="wizard-step" data-step="2" aria-labelledby="step2-title">
-        <div class="wizard-header">
-          <div class="wizard-eyebrow">Step 2 of 4 · Academic Subject</div>
-          <h1 class="wizard-title" id="step2-title">What subject?</h1>
-          <p class="wizard-subtitle">
-            Select the subject you are studying, or choose "Other" for a custom course or university module.
-          </p>
-        </div>
-
-        <div class="selection-grid-lg" id="subjects-grid-container"></div>
-
-        <div id="custom-subject-wrap" style="display:none; margin-top:1.5rem;" class="card">
-          <div class="form-group">
-            <label class="form-label" for="custom-subject-input">Custom Subject or Course Title</label>
-            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-              <input type="text" id="custom-subject-input" class="form-input" placeholder="e.g. Organic Chemistry II, Constitutional Law, Data Structures" style="flex:1;" />
-              <button type="button" class="btn btn-primary" id="custom-subject-continue-btn">Continue →</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="wizard-footer-nav">
-          <button type="button" class="btn btn-secondary" data-prev-step="1">← Back to Class</button>
-        </div>
-      </section>
-
-      <!-- STEP 3: WHAT EXAMINATION? -->
-      <section class="wizard-step" data-step="3" aria-labelledby="step3-title">
-        <div class="wizard-header">
-          <div class="wizard-eyebrow">Step 3 of 4 · Examination Format &amp; Rigor</div>
-          <h1 class="wizard-title" id="step3-title">What examination?</h1>
-          <p class="wizard-subtitle">
-            Your selected examination determines question patterns, cognitive rigor, and marking style.
-          </p>
-        </div>
-
-        <div class="selection-grid-lg" id="exam-types-grid"></div>
-
-        <!-- Examination Configuration Panel -->
-        <div class="exam-config-panel">
-          <!-- Question Count -->
-          <div class="form-group">
-            <label class="form-label">Question Count</label>
-            <div class="pill-selector-group">
-              <button type="button" class="pill-option" data-q-count="5">5</button>
-              <button type="button" class="pill-option selected" data-q-count="10">10</button>
-              <button type="button" class="pill-option" data-q-count="15">15</button>
-              <button type="button" class="pill-option" data-q-count="20">20</button>
-              <button type="button" class="pill-option" data-q-count="30">30</button>
-            </div>
-          </div>
-
-          <!-- Difficulty -->
-          <div class="form-group">
-            <label class="form-label">Difficulty Calibration</label>
-            <div class="pill-selector-group" id="difficulty-pills-container"></div>
-          </div>
-
-          <!-- Exam Mode vs Practice Mode -->
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label class="form-label">Preparation Mode</label>
-            <div class="mode-cards-row">
-              <button type="button" class="select-card selected" data-exam-mode="exam">
-                <span class="select-card-check">✓</span>
-                <span class="select-card-title">EXAM MODE</span>
-                <span class="select-card-desc">No answers shown until submission. Full examination simulation with post-exam grading and weak-area analysis.</span>
-              </button>
-              <button type="button" class="select-card" data-exam-mode="practice">
-                <span class="select-card-check">✓</span>
-                <span class="select-card-title">PRACTICE MODE</span>
-                <span class="select-card-desc">Immediate feedback and step-by-step explanation revealed right after you answer each question.</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Timer Option -->
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label class="form-label">Examination Timer (Recommended: <span id="recommended-time-label">15 min</span>)</label>
-            <div class="pill-selector-group">
-              <button type="button" class="pill-option selected" data-timer-opt="timed">Timed Examination</button>
-              <button type="button" class="pill-option" data-timer-opt="untimed">Untimed Session</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="wizard-footer-nav">
-          <button type="button" class="btn btn-secondary" data-prev-step="2">← Back to Subject</button>
-          <button type="button" class="btn btn-primary btn-lg" id="step-3-next-btn">Continue to Study Material →</button>
-        </div>
-      </section>
-
-      <!-- STEP 4: WHAT ARE YOU STUDYING? / GIVE EXAMIVO SOMETHING TO WORK WITH -->
-      <section class="wizard-step" data-step="4" aria-labelledby="step4-title">
-        <div class="wizard-header">
-          <div class="wizard-eyebrow">Step 4 of 4 · Study Material Input</div>
-          <h1 class="wizard-title" id="step4-title">Give EXAMIVO something to work with.</h1>
-          <p class="wizard-subtitle">
-            Upload your notes or textbook pages, paste study text, or enter a syllabus topic.
-          </p>
-        </div>
-
-        <!-- 4 Material Input Option Cards -->
-        <div class="material-mode-grid" role="tablist" aria-label="Material input options">
-          <button type="button" class="material-mode-card" data-material-mode="document">
-            <div class="material-mode-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <span class="select-card-title">Upload Document</span>
-            <span class="select-card-desc">PDF, DOC, DOCX, TXT</span>
-          </button>
-
-          <button type="button" class="material-mode-card" data-material-mode="image">
-            <div class="material-mode-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <span class="select-card-title">Upload Image</span>
-            <span class="select-card-desc">JPG, JPEG, PNG, WEBP</span>
-          </button>
-
-          <button type="button" class="material-mode-card" data-material-mode="text">
-            <div class="material-mode-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
-            </div>
-            <span class="select-card-title">Paste Text</span>
-            <span class="select-card-desc">Notes, handouts, or chapters</span>
-          </button>
-
-          <button type="button" class="material-mode-card selected" data-material-mode="topic">
-            <div class="material-mode-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-            </div>
-            <span class="select-card-title">Enter Topic(s)</span>
-            <span class="select-card-desc">One or multiple topics to research</span>
-          </button>
-        </div>
-
-        <!-- Panel 1: Upload Document -->
-        <div class="material-workspace-box" id="material-panel-document" style="display:none;">
-          <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.txt" class="sr-only" />
-          <div class="upload-dropzone" id="doc-dropzone" role="button" tabindex="0" aria-label="Drag and drop or click to upload document">
-            <div class="upload-icon-circle">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            </div>
-            <div style="font-weight:700; font-size:1.02rem; color:var(--text-primary);">Drag and drop your study document here, or click to browse</div>
-            <div style="font-size:0.84rem; color:var(--text-secondary);">Supports PDF, DOC, DOCX, and TXT files · Analyzes headings, definitions, formulas, and examples</div>
-          </div>
-          <div id="doc-file-preview" style="display:none;"></div>
-        </div>
-
-        <!-- Panel 2: Upload Image -->
-        <div class="material-workspace-box" id="material-panel-image" style="display:none;">
-          <input type="file" id="img-file-input" accept=".jpg,.jpeg,.png,.webp,image/*" class="sr-only" />
-          <div class="upload-dropzone" id="img-dropzone" role="button" tabindex="0" aria-label="Drag and drop or click to upload image">
-            <div class="upload-icon-circle">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <div style="font-weight:700; font-size:1.02rem; color:var(--text-primary);">Drag and drop a photo of your notes, textbook page, or diagram</div>
-            <div style="font-size:0.84rem; color:var(--text-secondary);">Supports JPG, JPEG, PNG, and WEBP · Printed notes, handwritten notes, screenshots &amp; worksheets</div>
-          </div>
-          <div id="img-file-preview" style="display:none;"></div>
-          <div class="form-group" style="margin-top:1.15rem;">
-            <label class="form-label" for="image-context-note">Topic(s) / Diagram Context or Key Transcription (Helps verify handwritten or low-light sections)</label>
-            <textarea id="image-context-note" class="form-textarea" rows="3" placeholder="e.g. Handwritten notes on Ohm's Law, series and parallel resistors, and circuit diagrams..."></textarea>
-          </div>
-        </div>
-
-        <!-- Panel 3: Paste Text -->
-        <div class="material-workspace-box" id="material-panel-text" style="display:none;">
-          <div class="form-group">
-            <label class="form-label" for="pasted-text-field">Paste Your Study Material, Lecture Notes, or Textbook Passage</label>
-            <textarea
-              id="pasted-text-field"
-              class="form-textarea"
-              rows="8"
-              placeholder="Paste your chapter notes, definitions, formulas, or summary points here..."
-            ></textarea>
-          </div>
-        </div>
-
-        <!-- Panel 4: Enter Topic(s) -->
-        <div class="material-workspace-box" id="material-panel-topic">
-          <div class="form-group">
-            <label class="form-label" for="topic-input-field">What topic or topics are you studying? (Enter one or multiple topics separated by commas or new lines)</label>
-            <textarea
-              id="topic-input-field"
-              class="form-textarea"
-              rows="3"
-              placeholder='e.g. "Osmosis, Mitosis, and Photosynthesis" or "Quadratic equations, Completing the square" or "Plate tectonics, Volcanoes, Earthquakes"'
-            ></textarea>
-            <div id="detected-topics-strip" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.45rem; margin-top:0.55rem;"></div>
-            <span style="font-size:0.82rem; color:var(--text-muted); margin-top:0.25rem;">
-              EXAMIVO searches and researches each topic you enter, adapts to your Class and Examination Type, and builds real, concept-specific examination questions.
-            </span>
-          </div>
-        </div>
-
-        <div class="wizard-footer-nav">
-          <button type="button" class="btn btn-secondary" data-prev-step="3">← Back to Examination</button>
-          <button type="button" class="btn btn-primary btn-lg" id="start-analysis-btn">
-            <span>Analyze &amp; Prepare Exam</span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </button>
-        </div>
-      </section>
-
-      <!-- STEP 5: EXAM FOCUS SCREEN (Shown After AI Analysis Before Starting Exam) -->
-      <section class="wizard-step" data-step="5" aria-labelledby="step5-title">
-        <div class="wizard-header">
-          <div class="wizard-eyebrow">Analysis Complete · Examination Blueprint Ready</div>
-          <h1 class="wizard-title" id="step5-title">EXAM FOCUS</h1>
-          <p class="wizard-subtitle">
-            Review the prioritized concepts identified by EXAMIVO before starting your examination.
-          </p>
-        </div>
-
-        <div class="focus-card-container">
-          <div id="focus-exam-meta-summary" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem;"></div>
-
-          <div class="focus-priority-grid">
-            <!-- High Priority -->
-            <div class="focus-column high-priority">
-              <div class="focus-col-title" style="color:var(--primary);">
-                <span>● High Priority</span>
-              </div>
-              <ul class="focus-concept-list" id="focus-high-priority-list"></ul>
-            </div>
-
-            <!-- Also Revise -->
-            <div class="focus-column">
-              <div class="focus-col-title" style="color:var(--accent);">
-                <span>○ Also Revise</span>
-              </div>
-              <ul class="focus-concept-list" id="focus-also-revise-list"></ul>
-            </div>
-          </div>
-
-          <div class="focus-rationale-banner" id="focus-rationale-text">
-            Prioritized based on the selected examination format and your supplied material.
-          </div>
-
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
-            <button type="button" class="btn btn-secondary" data-prev-step="4">← Adjust Material</button>
-            <button type="button" class="btn btn-primary btn-lg" id="begin-exam-btn">
-              <span>Start Examination Now</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- FULL-SCREEN AI LOADING EXPERIENCE: "EXAMIVO IS THINKING" -->
-  <div class="ai-thinking-overlay" id="ai-thinking-overlay" aria-hidden="true" role="dialog" aria-labelledby="thinking-title">
-    <div class="thinking-container">
-      <div id="thinking-core-slot"></div>
-      <h2 class="thinking-heading" id="thinking-title">EXAMIVO IS THINKING</h2>
-      <p class="thinking-subcontext">Transforming your study material into targeted examination practice</p>
-
-      <div class="thinking-stages-list" id="thinking-stages-list"></div>
-    </div>
+    <main class="setup-main" id="main">
+      <div id="step-root" class="page-enter"><!-- steps render here --></div>
+    </main>
   </div>
 
-  <!-- Mobile Bottom Navigation -->
-  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Home</span>
-    </a>
-    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Dashboard</span>
-    </a>
-    <a href="setup.html" class="mobile-nav-item active">
-      <span>Prepare</span>
-    </a>
-    <a href="history.html" class="mobile-nav-item" data-smooth-nav>
-      <span>History</span>
-    </a>
-  </nav>
-
-  <script type="module" src="setup.js"></script>
+  <script type="module" src="js/setup.js"></script>
 </body>
 </html>

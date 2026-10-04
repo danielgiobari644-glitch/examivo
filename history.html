@@ -1,109 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080A0F" />
-  <meta name="description" content="Examination History & Saved Practice Archive — EXAMIVO" />
-  <title>Examination History — EXAMIVO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Exam History — EXAMIVO</title>
+  <meta name="description" content="Every EXAMIVO practice you've completed, with scores and improvement." />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+  <meta name="theme-color" content="#0a0b10" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="logo.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="global.css" />
-  <link rel="stylesheet" href="animations.css" />
-  <link rel="stylesheet" href="app.css" />
+  <script>try{var m=localStorage.getItem("examivo.theme")||"dark";if(m==="system")m=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=m;}catch(e){}</script>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/app.css" />
 </head>
-<body data-page="history">
-  <!-- Top Navigation -->
-  <header class="top-nav">
-    <div class="nav-inner">
-      <a href="index.html" class="brand-link" data-smooth-nav>
-        <span class="brand-core-mini" aria-hidden="true"></span>
-        <span>EXAMIVO</span>
-      </a>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-body">
+    <header class="app-header" id="app-header"></header>
 
-      <nav class="nav-links" aria-label="Primary navigation">
-        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
-        <a href="setup.html" class="nav-link" data-smooth-nav>New Practice</a>
-        <a href="history.html" class="nav-link active">History</a>
-        <a href="study.html" class="nav-link" data-smooth-nav>Study Mistakes</a>
-      </nav>
-
-      <div class="nav-actions">
-        <span class="net-pill hidden" role="status">Offline</span>
-
-        <div class="theme-switcher" role="group" aria-label="Color theme">
-          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          </button>
-        </div>
-
-        <div id="nav-auth-slot"></div>
-      </div>
-    </div>
-  </header>
-
-  <main class="page-shell">
-    <div class="container dashboard-main">
-      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.75rem;">
-        <div>
-          <div style="font-size:0.76rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--primary); margin-bottom:0.25rem;">
-            Preparation Archive
+    <main id="main">
+      <div class="history-wrap">
+        <div class="history-head">
+          <div>
+            <h1>Exam History</h1>
+            <p>Every practice you've completed — scores, dates and details.</p>
           </div>
-          <h1 style="font-size:clamp(1.65rem, 3vw, 2.2rem);">Examination History</h1>
+          <div class="history-filters">
+            <select class="select" data-filter-subject aria-label="Filter by subject">
+              <option value="">All subjects</option>
+            </select>
+            <a class="btn btn-primary btn-sm" href="setup.html">New Practice</a>
+          </div>
         </div>
-        <a href="setup.html" class="btn btn-primary" data-smooth-nav>Start New Practice →</a>
+        <div class="history-list" data-history-list></div>
       </div>
+    </main>
+  </div>
 
-      <!-- Guest Prompt Banner -->
-      <div id="history-auth-banner" class="card" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-color:var(--border-highlight); background:var(--primary-soft);">
-        <div>
-          <strong style="color:var(--text-primary);">Sign in to sync your examination history across devices</strong>
-          <p style="font-size:0.85rem; color:var(--text-secondary);">Create a free account or sign in to store all completed examinations and weak-area diagnostics in Cloud Firestore.</p>
-        </div>
-        <button type="button" class="btn btn-primary btn-sm" id="history-signin-btn">Sign In / Create Account</button>
-      </div>
-
-      <!-- Filter Bar -->
-      <div class="history-filters" aria-label="Filter examination history">
-        <input type="search" id="history-search-input" class="form-input" placeholder="Search by topic, subject, or class..." />
-        <select id="history-subject-filter" class="form-select" aria-label="Filter by subject">
-          <option value="">All Subjects</option>
-        </select>
-        <select id="history-exam-filter" class="form-select" aria-label="Filter by examination type">
-          <option value="">All Exam Types</option>
-        </select>
-      </div>
-
-      <!-- History List -->
-      <div id="history-list-container"></div>
-    </div>
-  </main>
-
-  <!-- Mobile Bottom Navigation -->
-  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Home</span>
-    </a>
-    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Dashboard</span>
-    </a>
-    <a href="setup.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Prepare</span>
-    </a>
-    <a href="history.html" class="mobile-nav-item active">
-      <span>History</span>
-    </a>
-  </nav>
-
-  <script type="module" src="app.js"></script>
+  <script type="module" src="js/history.js"></script>
 </body>
 </html>

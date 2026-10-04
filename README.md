@@ -1,184 +1,193 @@
-<div align="center">
+# EXAMIVO
 
-# 🚀 HubbleNest
+**Prepare for the exam, not just the subject.**
+Your study material. Your exam. Your AI preparation.
 
-**Your people. Your space. Everything connected.**
-
-A modern digital space for private groups, classrooms, communities, and teams —
-real-time conversations, private messaging, file sharing, QR access and more.
-
-</div>
-
-Pure **HTML + CSS + vanilla JavaScript** — no frameworks, no build step, no server.
-**Firebase** is the backend (Auth · Firestore · Cloud Messaging) and **Cloudinary** is the file storage.
-
-Every file sits at the root — deploy the folder as-is to any static host
-(domain root, **GitHub Pages project sites**, Firebase Hosting, Netlify, …).
-All asset references are relative, so the app works from any base path.
+EXAMIVO is an AI-powered exam preparation platform. It turns a student's study material — PDF,
+document, image, photo of notes, screenshot, pasted text or just a topic — into a targeted,
+exam-format-aware practice experience: analysis → exam focus → original questions → grading →
+weak-area engine → follow-up practice.
 
 ---
 
-## Run Locally
+## 1. Technology (as specified)
 
-Any tiny static server works (this is a plain static site):
+- Pure HTML · Pure CSS · Vanilla JavaScript (ES modules, no build step, no frameworks)
+- Firebase modular SDK (Auth + Firestore + Analytics, loaded from the gstatic CDN)
+- Firebase Cloud Functions (v2) as the **only** place AI credentials exist
+- Firebase Hosting + Firestore security rules
+- PWA: `manifest.json` + `service-worker.js` (installable, offline-aware)
+- No React/Next/Vue/Tailwind/Bootstrap. No Firebase Storage — documents are extracted
+  in-browser and images are streamed as base64 through the secure backend, then discarded.
 
-```bash
-# Python (built-in, no install)
-python3 -m http.server 3000
+## 2. File structure
+
+```
+examivo/
+├── index.html            Landing page (public, real page — not the login screen)
+├── app.html              Dashboard (welcome, progress, recent practice, weak areas)
+├── setup.html            Progressive guided setup (class → subject → exam → material → focus)
+├── exam.html             Exam runtime (generation loading, exam/practice modes, timer)
+├── results.html          Score reveal, performance bands, question review, weak-area engine
+├── history.html          Exam history
+├── study.html            Study My Mistakes (revision notes, examples, practice, retest)
+├── manifest.json         PWA manifest
+├── service-worker.js     PWA service worker (static cache, never caches Firebase/API)
+├── firebase.json         Hosting + Firestore + Functions config
+├── .firebaserc           Project: examivo
+├── firestore.rules       Owner-only private data; admin-only config; no open rules
+├── firestore.indexes.json
+├── css/                  global (design system) · landing · app · setup · exam · results · animations
+├── js/
+│   ├── firebase.js       Firebase init (modular SDK) + analytics helper
+│   ├── constants.js      Classes, subjects, exam types, limits, storage keys
+│   ├── utils.js          DOM helpers, file processing (PDF/DOCX/image), handoff
+│   ├── ui.js             Theme (dark/light/system), toasts, modals, AI core + AI states,
+│   │                     staged AI loading overlays, empty states, offline banner
+│   ├── storage.js        Store facade: Firestore for accounts, localStorage for guests,
+│   │                     guest→account migration
+│   ├── ai.js             Cloud Function calls + client-side question validation + grading
+│   ├── auth.js           Google + email/password, friendly auth errors, account prompts
+│   ├── app-shell.js      Shared app header/nav/auth widget
+│   ├── landing.js  app.js  setup.js  exams.js  questions.js  results.js  study.js  history.js
+├── functions/
+│   ├── index.js          analyzeMaterial · generateQuestions · gradeAnswers · studyMistakes
+│   ├── ai.js             Provider-agnostic AI adapter (OpenAI-compatible endpoints)
+│   ├── profiles.js       Class-adaptive language profiles + exam format profiles
+│   └── package.json
+└── assets/               logo, PWA icons, favicon
 ```
 
-Then open **http://localhost:3000**
+## 3. Run locally
 
-## Deploy
+Any static server works (ES modules need http://, not file://):
 
-### GitHub Pages (project site)
+```bash
+cd examivo
+npx serve .            # or: python3 -m http.server 8080
+```
 
-1. Push this folder to a repo and enable Pages (Deploy from branch → root or /docs).
-2. In **Firebase Console → Authentication → Settings → Authorized domains**,
-   add `your-username.github.io` (required for Google sign-in).
-3. Done — invite links are shared as `https://your-username.github.io/repo/#join=CODE`.
+## 4. Connect Firebase (one-time, ~5 minutes)
 
-### Firebase Hosting (recommended — same backend)
+The Firebase web config in `js/firebase.js` is already set to the EXAMIVO project.
+
+1. **Authentication** — Firebase console → Authentication → Sign-in method → enable
+   **Google** and **Email/Password**. Add your local/preview domain under
+   Authentication → Settings → Authorized domains.
+2. **Firestore** — Firebase console → Firestore Database → Create database
+   (production mode). The security rules in `firestore.rules` are deployed in step 4.
+3. **Upgrade to Blaze** — Cloud Functions require the pay-as-you-go plan
+   (the AI functions have a generous free tier on most AI providers).
+4. **Deploy backend + rules + hosting:**
 
 ```bash
 npm i -g firebase-tools
 firebase login
-firebase init hosting     # choose your Firebase project, public root = this folder, SPA rewrite = Yes
-firebase deploy
+cd examivo
+firebase deploy --only firestore:rules,firestore:indexes
+firebase deploy --only functions
+firebase deploy --only hosting
 ```
 
-## Configuration
+## 5. Connect the AI backend (one secret, that's it)
 
-| What | Where |
-|------|-------|
-| Firebase config (apiKey, projectId, …) | `firebase.js` |
-| Cloudinary cloud / upload preset | `cloudinary.js` |
-| Firestore security rules | `firestore.rules` → paste into Firebase Console → Firestore → Rules → Publish (**re-publish every time this file changes**) |
-| Background push sender (optional, see below) | Firestore document `config/push` |
+The backend speaks to **any OpenAI-compatible chat API** (OpenAI, Z.ai GLM, DeepSeek, Groq,
+OpenRouter, a self-hosted gateway…). Configure with Firebase secrets:
 
-## Notifications
+```bash
+cd examivo
+firebase functions:secrets:set AI_API_KEY        # paste the provider's API key
 
-**In-app (always on, zero setup):** the notification center, unread badges and
-toasts run on Firestore realtime listeners.
+# optional overrides (defaults shown):
+firebase functions:secrets:set AI_BASE_URL       # default: https://api.openai.com/v1
+firebase functions:secrets:set AI_MODEL          # default: gpt-4o-mini
+firebase functions:secrets:set AI_VISION_MODEL   # default: AI_MODEL (needed for photo-of-notes analysis)
 
-**Off-app background push (real device notifications while HubbleNest is
-closed)** — delivered through **Firebase Cloud Messaging**, sent directly from
-members' browsers (no server needed). One-time setup by the project owner:
+firebase deploy --only functions
+```
 
-1. **Generate a push sender key:**
-   Firebase Console → ⚙️ Project settings → **Service accounts** →
-   *Generate new private key* → download the JSON.
-   Recommended: first create a dedicated service account
-   (IAM & Admin → Service Accounts) with **only** the
-   *Firebase Cloud Messaging API Admin* role, and use ITS key.
-2. **Create the Firestore document** `config` (collection) → `push` (ID) with:
-   ```
-   clientEmail : "firebase-adminsdk-xxxx@hubblenest.iam.gserviceaccount.com"
-   privateKey  : "-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n"
-   ```
-   (Paste the `client_email` and `private_key` values from the JSON. Keep the
-   `\n` escapes exactly as they appear in the JSON.)
-3. **Publish the updated Firestore rules** (see `firestore.rules`) so members
-   can read `config/push` and manage their device tokens in
-   `users/{uid}/pushTokens`.
-4. Members then press **Turn on notifications** in the app (or the browser
-   prompt) — their device registers an FCM token and every new private
-   message, chat request, join request and announcement reaches them even when
-   the app is fully closed.
+Without a key, the app still runs — material analysis will return a clear
+"backend isn't configured" message (never a raw stack trace).
 
-> Without step 2, everything else still works — you simply stay on in-app
-> notifications only. To remove a test/old account: Firebase Console →
-> Authentication → delete the user, and Firestore → `users` → delete its
-> profile document.
-
-## Troubleshooting
-
-**"Missing or insufficient permissions" when sending / accepting chat requests
-(`chat-requests.js`, `app.js — Failed to accept request`):**
-the published Firestore rules are older than the ones shipped in this package.
-The app checks `getDoc()` on `chatRequests/{uidA_uidB}` and
-`conversations/{id}` to see whether one already exists between two members —
-when the document **does not exist yet**, the old rules dereference
-`resource.data` on a null resource and deny the read, which surfaces as
-"Missing or insufficient permissions" and blocks the whole flow. Fix (2
-minutes, owner only):
-
-1. Open **Firebase Console → Firestore Database → Rules**.
-2. Replace the full contents with the current `firestore.rules` file from
-   this package (the `chatRequests` and `conversations` blocks now allow
-   reading non-existent documents — they carry no data, so nothing is
-   exposed).
-3. Click **Publish**. The request → accept → private-chat flow works
-   immediately, no reload needed.
-
-**After deploying a new build, an old service worker keeps serving stale
-files (or logs "Failed to convert value to 'Response'"):**
-open the site, DevTools → Application → Service Workers → **Unregister**,
-then hard-refresh (**Ctrl+Shift+R**) once. New builds bump the cache version
-(`hubblenest-v6`), so this is only needed once per migration. The fetch
-handler now always resolves to a real `Response`, so the
-"Failed to convert value to 'Response'" error can no longer occur.
-
-**Push activation fails with a 401 / "token-subscribe-failed" /
-"Request is missing required authentication credential"
-(`fcmregistrations.googleapis.com`):**
-the project's **Firebase Cloud Messaging API** is not enabled. This is
-project-side config, not an app bug. Fix (2 minutes, owner only):
-
-1. Open <https://console.cloud.google.com/apis/library/fcm.googleapis.com>
-   (select the **hubblenest** project).
-2. Click **Enable** on *Firebase Cloud Messaging API*.
-3. While there, also enable *Firebase Installations API* if it isn't already
-   (<https://console.cloud.google.com/apis/library/firebaseinstallations.googleapis.com>).
-4. In the app, press **Turn on notifications** again — the device now registers
-   successfully.
-
-If it still fails after enabling the API, the Web Push certificate (VAPID key)
-may belong to a different project: Firebase Console → Project settings →
-**Cloud Messaging** → Web Push certificates, and either set that key in the
-Firestore `config/push` document as `publicKey` or use the embedded default.
-
-**Google Sign-In popup closes instantly or logs
-"Cross-Origin-Opener-Policy policy would block the window.closed call":**
-GitHub Pages (and some hosts) send restrictive COOP headers. HubbleNest
-automatically falls back to the full-page redirect sign-in, so this is handled.
-Also make sure your domain is authorized: Firebase Console → Authentication →
-Settings → **Authorized domains** → add `danielgiobari644-glitch.github.io`.
-
-**"Banner not shown: beforeinstallpromptevent.preventDefault() called"
-in the console:** this is Chrome's standard informational note for sites with a
-custom install button (Twitter, Spotify and GitHub show it too). It is not an
-error — the native install banner appears when the **Download App** button in
-the hero is clicked, which calls `prompt()` on the captured event.
-
-## What's Inside
-
-- **Landing page** with hero (incl. **Download App** PWA install button),
-  features, use cases and invite-code quick join
-- **Email / password + Google authentication**, password recovery, 6-step signup
-- **Spaces** — create, join by code or QR, approve join requests, chat with
-  reactions, attachments (images via Cloudinary), files, links and announcements
-- **People directory** with search, member profiles and private chat requests
-- **Realtime private messaging** with E2E-encrypted payloads (Web Crypto)
-- **Notification center** with unread badges (Firestore realtime)
-- **Background push notifications** via FCM — works when the app is closed
-- **PWA** — installable (with iOS "Add to Home Screen" guidance), offline shell
-  via service worker, Firestore local persistence
-- **Fast loading** — service worker v7 serves every shell asset, Firebase SDK
-  chunk, Google Font and Cloudinary image from cache on repeat visits
-  (cache-first; the cache version is bumped on each deploy to ship updates),
-  fonts load in parallel (no render-blocking `@import`), below-fold images
-  lazy-load
-- **Dark / light theme**, responsive layout with mobile bottom navigation
-
-## Structure (flat — no subfolders)
+## 6. Architecture & security model
 
 ```
-index.html · style.css · app.js · home.js
-firebase.js · auth.js · spaces.js · chat.js · private-chat.js · chat-requests.js
-people.js · profile.js · files.js · links.js · announcements.js · members.js
-notifications.js · fcm-sender.js · cloudinary.js · encryption.js · qr.js · search.js
-settings.js · utils.js
-service-worker.js · manifest.webmanifest · firestore.rules
-+ icons & illustrations (PNG / SVG at root)
+Browser (pure HTML/CSS/JS)
+   ↓  httpsCallable
+Firebase Cloud Functions (secrets live here only)
+   ↓  HTTPS
+AI provider (OpenAI-compatible)
+   ↓
+validated JSON → Browser
 ```
+
+- **No AI key ever reaches the frontend.** The Firebase web config is public by design.
+- **Server-side validation:** every generated question passes a strict schema validator
+  (type, options, correct-answer bounds, duplicates, explanation presence) with automatic
+  retries before anything reaches the student. The client validates again.
+- **Firestore rules:** every user-scoped path (`users/{uid}/attempts|exams|weakAreas|…`)
+  is owner-only. `subjects`, `examProfiles`, `classProfiles` are public read / admin write
+  (admin = custom claim `admin: true`). No `allow read, write: if true` anywhere.
+- **No Firebase Storage:** PDF/DOCX/TXT are parsed in the browser (pdf.js / mammoth, lazy
+  loaded), images are downscaled to ≤1400 px and sent as base64 to the function, used once,
+  then discarded.
+
+## 7. Honest loading, honest scores
+
+- AI loading screens show **real stage progression** — a stage only completes when its actual
+  work completes (local extraction, the real function call, real client validation).
+  No fake percentages.
+- Scores are computed from actual answers. Open-ended questions (short answer / theory /
+  essay) are graded by the backend marking engine; if grading is unavailable they are
+  excluded from the automatic score and clearly marked for self-review against the model
+  answer — never faked.
+- Weak areas are derived per-topic from the student's real answers, with evidence
+  ("2/3 questions on this concept weren't solid") and a plain-language explanation of how.
+
+## 8. Product notes
+
+- **Try before account:** everything works as a guest (localStorage). Creating an account
+  (Google or email) migrates guest history into Firestore automatically.
+- **Class-adaptive language:** Primary (simple concrete English) → JSS (clear academic) →
+  SS (senior-secondary precision) → University (full terminology). Implemented in
+  `functions/profiles.js` and enforced in every prompt.
+- **Exam-format awareness:** WAEC/NECO/JAMB/Common Entrance/School/Mock/Quiz/… each carry a
+  question-type mix, style guide and marking conventions that steer generation.
+- **Accessibility:** semantic HTML, keyboard navigation, visible focus, ARIA labels,
+  `prefers-reduced-motion` support, accessible contrast in both themes.
+
+## 9. Troubleshooting — CORS errors & “functions/internal internal”
+
+A healthy v2 callable function answers browser CORS preflights automatically. So when the
+console shows an error like this, the request **never reached a healthy function** — the
+missing `Access-Control-Allow-Origin` header is a symptom, not the disease:
+
+```
+Access to fetch at 'https://us-central1-<project>.cloudfunctions.net/analyzeMaterial' … has
+been blocked by CORS policy: Response to preflight request doesn't pass access control check
+[EXAMIVO] AI call failed: functions/internal internal
+```
+
+EXAMIVO detects exactly this signature (`js/ai.js`), probes the `health` endpoint live, and
+shows a message naming the real problem. To fix it by hand, work through this checklist in order:
+
+1. **Blaze plan** — Cloud Functions can only be deployed on the pay-as-you-go (Blaze) plan.
+   On the free Spark plan the deploy fails and the function URLs don't exist → every call
+   404s → the browser reports it as a CORS error.
+2. **Secret set BEFORE deploy** — run `firebase functions:secrets:set AI_API_KEY` first.
+   A deploy where a referenced secret is missing fails for every function that uses it.
+3. **Deploy actually succeeded** — run `firebase deploy --only functions` inside the
+   `examivo/` folder and read the output: all five functions (`health`, `analyzeMaterial`,
+   `generateQuestions`, `gradeAnswers`, `studyMistakes`) should end with a ✔ / "Deployed!".
+4. **Same project & region as the frontend** — the browser calls
+   `https://us-central1-<projectId>.cloudfunctions.net/<fn>` using `projectId` from
+   `js/firebase.js`. The region is fixed to `us-central1` in `functions/index.js`
+   (`setGlobalOptions`). A mismatch = 404 = CORS error.
+5. **One-click check** — open `https://us-central1-<your-project-id>.cloudfunctions.net/health`
+   in a browser. You should see `{"ok":true,...}`. If you don't, the functions are not
+   deployed or not reachable — go back to step 3.
+6. **Cold-start crashes** — if `health` responds but the AI calls don't, look for startup
+   errors with `firebase functions:log` (e.g. a bad Node version or missing module).
+
+After changing anything under `functions/`, always redeploy (`npm run deploy` inside
+`examivo/functions/`) — frontend-only changes need no redeploy.

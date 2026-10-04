@@ -1,232 +1,268 @@
-/**
- * HubbleNest Utility Functions
- * Toasts, modal managers, date formatters, sanitizers, and SVG icons.
- */
+/* ============================================================
+   EXAMIVO — Utilities
+   ============================================================ */
 
-/**
- * Toast Notification System
- */
-export function showToast(message, type = 'info', duration = 3500) {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
-  }
+export const $ = (sel, root = document) => root.querySelector(sel);
+export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  
-  const icon = type === 'success' 
-    ? '✓' 
-    : type === 'error' 
-      ? '✕' 
-      : type === 'warning' 
-        ? '!' 
-        : 'ℹ';
-
-  toast.innerHTML = `
-    <span class="toast-icon">${icon}</span>
-    <span class="toast-message">${escapeHtml(message)}</span>
-    <button class="toast-close" aria-label="Close">&times;</button>
-  `;
-
-  container.appendChild(toast);
-
-  // Trigger animation
-  requestAnimationFrame(() => {
-    toast.classList.add('toast-visible');
-  });
-
-  const dismiss = () => {
-    toast.classList.remove('toast-visible');
-    toast.classList.add('toast-hiding');
-    setTimeout(() => {
-      if (toast.parentElement) toast.remove();
-    }, 300);
-  };
-
-  const timer = setTimeout(dismiss, duration);
-
-  toast.querySelector('.toast-close').addEventListener('click', () => {
-    clearTimeout(timer);
-    dismiss();
-  });
-}
-
-/**
- * Escape raw HTML to prevent XSS
- */
-export function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-/**
- * Extract URLs from a string
- */
-export function extractUrls(text) {
-  if (!text) return [];
-  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-  const matches = text.match(urlRegex);
-  if (!matches) return [];
-  return Array.from(new Set(matches)).map(url => {
-    try {
-      const parsed = new URL(url);
-      return {
-        url,
-        domain: parsed.hostname.replace(/^www\./, '')
-      };
-    } catch {
-      return { url, domain: url };
-    }
-  });
-}
-
-/**
- * Convert URLs inside text into clickable links
- */
-export function linkify(text) {
-  if (!text) return '';
-  const escaped = escapeHtml(text);
-  const urlRegex = /(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
-  return escaped.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="chat-link">${url}</a>`;
-  });
-}
-
-/**
- * Format timestamp into relative or readable string
- */
-export function formatTimeAgo(dateInput) {
-  if (!dateInput) return '';
-  const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
-  const now = new Date();
-  const diffSec = Math.floor((now - date) / 1000);
-
-  if (diffSec < 45) return 'Just now';
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  if (diffSec < 172800) return 'Yesterday';
-  
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric'
-  });
-}
-
-/**
- * Format full date & time (e.g. Sep 28, 2026, 4:15 PM)
- */
-export function formatDateTime(dateInput) {
-  if (!dateInput) return '';
-  const date = dateInput.toDate ? dateInput.toDate() : new Date(dateInput);
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  });
-}
-
-/**
- * Format expiration countdown for temporary spaces
- */
-export function formatExpiration(expiresAt) {
-  if (!expiresAt) return null;
-  const expDate = expiresAt.toDate ? expiresAt.toDate() : new Date(expiresAt);
-  const now = new Date();
-  const diffMs = expDate - now;
-
-  if (diffMs <= 0) {
-    return { isExpired: true, text: 'Expired', urgent: true };
-  }
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-
-  if (days > 1) {
-    return { isExpired: false, text: `Expires in ${days} days`, urgent: false };
-  }
-  if (days === 1) {
-    return { isExpired: false, text: `Expires tomorrow`, urgent: true };
-  }
-  if (hours >= 1) {
-    return { isExpired: false, text: `Expires in ${hours} hours`, urgent: true };
-  }
-  const minutes = Math.floor(diffMs / (1000 * 60));
-  return { isExpired: false, text: `Expires in ${Math.max(1, minutes)}m`, urgent: true };
-}
-
-/**
- * Copy text to clipboard with feedback
- */
-export async function copyToClipboard(text, successMessage = 'Copied to clipboard') {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
+/** Build a DOM element. attrs: class, text, html, dataset*, aria*, on* handlers. */
+export function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value == null || value === false) continue;
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key === 'html') node.innerHTML = value;
+    else if (key === 'dataset') Object.assign(node.dataset, value);
+    else if (key.startsWith('on') && typeof value === 'function') {
+      node.addEventListener(key.slice(2).toLowerCase(), value);
+    } else if (key.startsWith('aria-') || key.startsWith('data-')) {
+      node.setAttribute(key, value);
     } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
-    showToast(successMessage, 'success');
-    return true;
-  } catch (err) {
-    console.error('Clipboard copy failed:', err);
-    showToast('Failed to copy. Please copy manually.', 'error');
-    return false;
-  }
-}
-
-/**
- * Generate Avatar URL fallback with user initials
- */
-export function getAvatarUrl(photoUrl, name = 'User') {
-  if (photoUrl && photoUrl.trim()) return photoUrl;
-  const initials = (name || 'U').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100%25' height='100%25' fill='%231e293b'/><text x='50%25' y='54%25' font-family='system-ui, -apple-system, sans-serif' font-weight='600' font-size='38' fill='%2394a3b8' text-anchor='middle' dominant-baseline='middle'>${initials}</text></svg>`;
-}
-
-/**
- * Modal Manager
- */
-export function openModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  modal.classList.add('modal-active');
-  document.body.classList.add('modal-open');
-}
-
-export function closeModal(modalId) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  modal.classList.remove('modal-active');
-  if (!document.querySelector('.modal.modal-active')) {
-    document.body.classList.remove('modal-open');
-  }
-}
-
-/**
- * Close any active modal on Escape key
- */
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const activeModal = document.querySelector('.modal.modal-active');
-    if (activeModal) {
-      closeModal(activeModal.id);
+      node.setAttribute(key, value === true ? '' : value);
     }
   }
-});
+  for (const child of children.flat()) {
+    if (child == null || child === false) continue;
+    node.append(child.nodeType ? child : document.createTextNode(String(child)));
+  }
+  return node;
+}
+
+export function escapeHtml(str) {
+  return String(str ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+export function debounce(fn, ms = 250) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
+export function uid(prefix = 'id') {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n));
+}
+
+export function formatTime(totalSeconds) {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const mm = String(m).padStart(2, '0');
+  const ss = String(sec).padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+export function formatDate(ts) {
+  if (!ts) return '';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function formatBytes(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function humanDelay(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Errors that are safe (and meant) to show to the user. */
+export class HumanError extends Error {
+  constructor(message, { retryable = true } = {}) {
+    super(message);
+    this.name = 'HumanError';
+    this.retryable = retryable;
+  }
+}
+
+/* ============================================================
+   File processing helpers
+   Files never touch Firebase Storage. Documents are extracted to
+   text in-browser (lazy-loaded readers); images are downscaled and
+   streamed as base64 to the secure backend, then discarded.
+   ============================================================ */
+
+export function detectKind(file) {
+  const name = file.name.toLowerCase();
+  const type = file.type || '';
+  if (type.startsWith('image/') || /\.(png|jpe?g|webp)$/.test(name)) return 'image';
+  if (type === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (/\.(docx?|odt)$/.test(name) || type.includes('word')) return 'doc';
+  if (type.startsWith('text/') || /\.(txt|md|csv)$/.test(name)) return 'text';
+  return 'unknown';
+}
+
+export function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new HumanError('That file could not be read. Try a different file.'));
+    reader.readAsText(file);
+  });
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new HumanError('A required file reader could not load. Check your connection.'));
+    document.head.appendChild(s);
+  });
+}
+
+/** Extract text from a PDF in-browser using pdf.js (lazy loaded, CDN). */
+export async function extractPdfText(file, onProgress) {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  const pdfjs = window.pdfjsLib;
+  pdfjs.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  const pages = Math.min(pdf.numPages, 60);
+  let text = '';
+  for (let i = 1; i <= pages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map((it) => it.str).join(' ') + '\n\n';
+    onProgress?.(i / pages);
+  }
+  const clean = text.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  if (clean.length < 40) {
+    throw new HumanError(
+      'EXAMIVO could not read selectable text from that PDF. It may be a scan — try uploading clear page images instead.'
+    );
+  }
+  return clean.slice(0, 60000);
+}
+
+/** Extract text from DOCX in-browser using mammoth.js (lazy loaded, CDN). */
+export async function extractDocxText(file) {
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await window.mammoth.extractRawText({ arrayBuffer });
+  const text = String(result?.value || '').trim();
+  if (!text) throw new HumanError('That document appears to be empty.');
+  return text.slice(0, 60000);
+}
+
+/** Downscale an image in-browser and return { dataUrl, base64, mime, width, height }. */
+export async function processImage(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new HumanError('That image could not be read.'));
+    reader.readAsDataURL(file);
+  });
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new HumanError('That image could not be opened. Try a JPG or PNG.'));
+    image.src = dataUrl;
+  });
+  const maxDim = 1400;
+  let { width, height } = img;
+  if (Math.max(width, height) > maxDim) {
+    const ratio = maxDim / Math.max(width, height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, width, height);
+  const out = canvas.toDataURL('image/jpeg', 0.85);
+  return { dataUrl: out, base64: out.split(',')[1], mime: 'image/jpeg', width, height };
+}
+
+/** Normalize any material input into the transport shape used by the backend. */
+export async function materialFromFile(file, onProgress) {
+  const kind = detectKind(file);
+  if (kind === 'image') {
+    const img = await processImage(file);
+    return { type: 'image', fileName: file.name, sizeBytes: file.size, ...img };
+  }
+  if (kind === 'pdf') {
+    const text = await extractPdfText(file, onProgress);
+    return { type: 'text', fileName: file.name, sizeBytes: file.size, text };
+  }
+  if (kind === 'doc') {
+    if (/\.docx?$/i.test(file.name) && file.name.toLowerCase().endsWith('.doc')) {
+      throw new HumanError('Legacy .doc files are not supported. Save as .docx, PDF or TXT and try again.');
+    }
+    const text = await extractDocxText(file);
+    return { type: 'text', fileName: file.name, sizeBytes: file.size, text };
+  }
+  if (kind === 'text') {
+    const text = (await readFileAsText(file)).slice(0, 60000);
+    if (!text.trim()) throw new HumanError('That file appears to be empty.');
+    return { type: 'text', fileName: file.name, sizeBytes: file.size, text };
+  }
+  throw new HumanError('That file type is not supported. Use PDF, DOC, DOCX, TXT, JPG, PNG or WEBP.');
+}
+
+/** Session-scoped handoff between pages (setup → exam → results). */
+export const Handoff = {
+  set(key, value) {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      /* storage full or blocked — non fatal */
+    }
+  },
+  get(key) {
+    try {
+      const raw = sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  take(key) {
+    const value = Handoff.get(key);
+    try {
+      sessionStorage.removeItem(key);
+    } catch { /* ignore */ }
+    return value;
+  },
+  cloneInto(key, value) {
+    try {
+      sessionStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Session storage can overflow with large material — trim text payload.
+      try {
+        const slim = { ...value, material: { ...value.material, text: undefined } };
+        sessionStorage.setItem(key, JSON.stringify(slim));
+      } catch { /* give up silently */ }
+    }
+  },
+};
+
+export function queryFlag(name) {
+  return new URLSearchParams(location.search).get(name);
+}

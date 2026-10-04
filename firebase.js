@@ -1,124 +1,79 @@
-/**
- * Firebase Modular SDK Setup for HubbleNest
- * Uses the exact provided project credentials.
- * Absolutely NO Firebase Storage is imported or initialized.
- * Includes Firestore IndexedDB Offline Persistence & Firebase Cloud Messaging (FCM).
- */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithRedirect, 
-  getRedirectResult, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
-  sendPasswordResetEmail, 
-  updateProfile,
-  onAuthStateChanged 
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { 
-  getFirestore,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager,
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  onSnapshot, 
-  serverTimestamp, 
-  increment,
-  arrayUnion,
-  arrayRemove
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-import {
-  getMessaging,
-  getToken,
-  onMessage,
-  isSupported as isMessagingSupported
-} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-messaging.js";
+/* ============================================================
+   EXAMIVO — Firebase initialization (modular SDK, CDN)
+   The web config below is public by design. No secrets live here:
+   all AI traffic goes through Cloud Functions (see /functions).
+   ============================================================ */
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDfMNtJ9fl_4kWdNlLcPQlhG5kuxR35CO4",
-  authDomain: "hubblenest.firebaseapp.com",
-  projectId: "hubblenest",
-  messagingSenderId: "290433427078",
-  appId: "1:290433427078:web:5d4649f35395bdae919307",
-  measurementId: "G-MNWYE7T4PG"
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  browserPopupRedirectResolver,
+  setPersistence,
+  browserLocalPersistence,
+} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+
+export const firebaseConfig = {
+  apiKey: 'AIzaSyAgbjUW2xF324nxJqcMoO3Yajq1HmRS088',
+  authDomain: 'examivo.firebaseapp.com',
+  projectId: 'examivo',
+  storageBucket: 'examivo.firebasestorage.app',
+  messagingSenderId: '789497850627',
+  appId: '1:789497850627:web:ea968e6b87f22b5e39d736',
+  measurementId: 'G-0MMN146SF8',
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+let app = null;
+let auth = null;
+let db = null;
+let initError = null;
 
-// Enable Real Firestore IndexedDB Offline Persistence
-let firestoreInstance;
 try {
-  firestoreInstance = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager()
-    })
-  });
-} catch (e) {
-  console.warn('Could not initialize multi-tab persistent cache, falling back to standard Firestore:', e);
-  firestoreInstance = getFirestore(app);
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  setPersistence(auth, browserLocalPersistence).catch(() => {});
+} catch (err) {
+  console.error('[EXAMIVO] Firebase failed to initialize:', err);
+  initError = err;
 }
-export const db = firestoreInstance;
+
+export { app, auth, db, initError };
 
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+export const popupResolver = browserPopupRedirectResolver;
 
-// Messaging (FCM)
-let messagingInstance = null;
-export async function getFcmMessaging() {
-  if (messagingInstance) return messagingInstance;
+/* ---------- Analytics (optional, fails silently) ---------- */
+let analytics = null;
+export async function trackEvent(name, params = {}) {
   try {
-    const supported = await isMessagingSupported();
-    if (supported) {
-      messagingInstance = getMessaging(app);
-      return messagingInstance;
+    if (!analytics) {
+      const supported = await import(
+        'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js'
+      ).then((m) => m.isSupported());
+      if (!supported) return;
+      analytics = (await import(
+        'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js'
+      )).getAnalytics(app);
     }
-  } catch (err) {
-    console.warn('FCM messaging is not supported in this environment:', err);
+    const { logEvent } = await import(
+      'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js'
+    );
+    logEvent(analytics, name, params);
+  } catch {
+    /* analytics is never critical */
   }
-  return null;
 }
 
-export {
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  updateProfile,
-  onAuthStateChanged,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  increment,
-  arrayUnion,
-  arrayRemove,
-  getToken,
-  onMessage
+export const SDK = {
+  auth: 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js',
+  firestore: 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js',
+  functions: 'https://www.gstatic.com/firebasejs/10.12.5/firebase-functions.js',
 };
+
+/** Lazily import a Firebase SDK module (keeps first paint fast). */
+export async function sdk(module) {
+  return import(SDK[module] || module);
+}

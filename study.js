@@ -1,303 +1,369 @@
-/**
- * EXAMIVO — "Study My Mistakes" Revision Engine & Retest Controller (study.html)
- * Generates Short Revision Notes, Important Concepts, Worked Examples,
- * Interactive Check Questions, and "Retest Me".
- */
+/* ============================================================
+   EXAMIVO — Study My Mistakes
+   Turns a completed exam's wrong answers into revision notes,
+   examples and practice questions via the AI backend.
+   ============================================================ */
 
-import {
-  escapeHtml,
-  generateId
-} from "./utils.js";
-import {
-  initCommonUI,
-  renderAIStatus,
-  showToast,
-  navigateTo
-} from "./ui.js";
-import { initAuth } from "./auth.js";
-import {
-  getActiveResultSession,
-  getActiveStudySession,
-  setActiveStudySession,
-  setActiveExamSession,
-  saveStudySessionToFirestore,
-  saveExamToFirestore
-} from "./storage.js";
-import {
-  generateStudyMistakesGuide,
-  runWeakAreaPracticePipeline,
-  validateAndNormalizeQuestion
-} from "./ai.js";
-import { trackEvent } from "./firebase.js";
+import { $, el, escapeHtml, formatDate, formatTime, queryFlag, Handoff } from './utils.js';
+import { renderAppShell } from './app-shell.js';
+import { createAILoading, createThemeToggle, emptyState, toast } from './ui.js';
+import { studyMistakes } from './ai.js';
+import { Store, isGuest } from './storage.js';
+import { promptForAccount } from './auth.js';
+import { trackEvent } from './firebase.js';
+import { examTypeLabel } from './constants.js';
 
-let activeAttempt = null;
-let activeStudyData = null;
+renderAppShell({ active: 'study' });
 
-document.addEventListener("DOMContentLoaded", async () => {
-  initCommonUI();
-  initAuth();
+const root = $('[data-study-root]');
+const listHolder = $('[data-sessions-list]');
 
-  activeAttempt = getActiveResultSession();
-  const cachedStudy = getActiveStudySession();
-
-  if (cachedStudy && activeAttempt && cachedStudy.attemptId === activeAttempt.attemptId) {
-    activeStudyData = cachedStudy;
-    renderStudyModules(activeStudyData);
-  } else if (activeAttempt) {
-    await buildStudyGuideFromAttempt(activeAttempt);
-  } else if (cachedStudy) {
-    activeStudyData = cachedStudy;
-    renderStudyModules(activeStudyData);
-  } else {
-    renderEmptyStudyState();
-  }
-
-  const retestBtn = document.getElementById("retest-me-btn");
-  if (retestBtn) {
-    retestBtn.addEventListener("click", handleRetestMe);
-  }
-});
-
-function renderEmptyStudyState() {
-  const root = document.getElementById("study-content-root");
-  if (!root) return;
-  root.innerHTML = `
-    <div class="empty-state" style="margin-top:2rem;">
-      ${renderAIStatus("idle", null, { size: "md", showLabel: false })}
-      <h3>Your personalized revision notes will appear here.</h3>
-      <p>Complete a practice examination first, then click "Study My Mistakes" so EXAMIVO can build targeted notes and worked examples around the exact questions you missed.</p>
-      <a href="setup.html" class="btn btn-primary btn-lg" data-smooth-nav>Start Preparing</a>
-    </div>
-  `;
+const attemptId = queryFlag('attempt');
+if (attemptId) {
+  runStudySession(attemptId);
+} else {
+  renderStudyHome();
 }
 
-async function buildStudyGuideFromAttempt(attempt) {
-  const loadingBox = document.getElementById("study-loading-box");
-  const contentBox = document.getElementById("study-modules-container");
+/* ---------------- Home: pick what to study ---------------- */
 
-  if (loadingBox) {
-    loadingBox.style.display = "flex";
-    renderAIStatus("thinking", "#study-ai-core-slot", {
-      size: "lg",
-      showLabel: true,
-      customLabel: "Synthesizing Revision Notes"
-    });
-  }
-  if (contentBox) contentBox.style.display = "none";
+async function renderStudyHome() {
+  root.querySelector('.history-head p').textContent =
+    'Pick a completed exam — EXAMIVO builds revision notes from what you got wrong.';
 
-  const missedReviews = (attempt.questionReviews || []).filter((q) => !q.isCorrect);
-  const targetReviews =
-    missedReviews.length > 0 ? missedReviews : (attempt.questionReviews || []).slice(0, 4);
-
-  const topicsCovered = [...new Set(targetReviews.map((r) => r.topic || attempt.subject))];
-
+  let attempts = [];
+  let sessions = [];
   try {
-    const response = await generateStudyMistakesGuide({
-      attemptId: attempt.attemptId,
-      classLevel: attempt.classLevel,
-      subject: attempt.subject,
-      examType: attempt.examType,
-      topicsCovered,
-      missedItems: targetReviews.map((r) => ({
-        question: r.question,
-        userAnswer: r.userAnswerFormatted,
-        correctAnswer: r.correctAnswerFormatted,
-        explanation: r.explanation,
-        topic: r.topic
-      }))
-    });
-
-    activeStudyData = {
-      sessionId: generateId("study"),
-      attemptId: attempt.attemptId,
-      classLevel: attempt.classLevel,
-      subject: attempt.subject,
-      examType: attempt.examType,
-      topicsCovered,
-      modules: response.modules || [],
-      retestQuestions: response.retestQuestions || []
-    };
-
-    setActiveStudySession(activeStudyData);
-    saveStudySessionToFirestore(activeStudyData).catch(() => {});
-
-    if (loadingBox) loadingBox.style.display = "none";
-    if (contentBox) contentBox.style.display = "block";
-    renderStudyModules(activeStudyData);
+    [attempts, sessions] = await Promise.all([Store.listAttempts(), Store.listStudySessions()]);
   } catch (err) {
-    if (loadingBox) {
-      loadingBox.innerHTML = `
-        <div class="error-state-card" style="width:100%;">
-          ${renderAIStatus("error", null, { size: "sm", showLabel: false })}
-          <h3>Something went wrong.</h3>
-          <p>${escapeHtml(err.message || "EXAMIVO couldn't complete that request.")}</p>
-          <button type="button" class="btn btn-primary" id="retry-study-btn">Try Again</button>
-        </div>
-      `;
-      document.getElementById("retry-study-btn")?.addEventListener("click", () => {
-        window.location.reload();
-      });
-    }
-  }
-}
-
-function renderStudyModules(studyData) {
-  const loadingBox = document.getElementById("study-loading-box");
-  const contentBox = document.getElementById("study-modules-container");
-  const headerMeta = document.getElementById("study-header-meta");
-  const modulesListEl = document.getElementById("study-modules-list");
-
-  if (loadingBox) loadingBox.style.display = "none";
-  if (contentBox) contentBox.style.display = "block";
-
-  if (headerMeta) {
-    headerMeta.innerHTML = `
-      <span class="badge badge-primary">${escapeHtml(studyData.classLevel)}</span>
-      <span class="badge badge-accent">${escapeHtml(studyData.subject)}</span>
-      <span class="badge badge-neutral">${escapeHtml(studyData.examType)}</span>
-      <span class="badge badge-neutral">${(studyData.modules || []).length} Targeted Revision Module${(studyData.modules || []).length === 1 ? "" : "s"}</span>
-    `;
+    listHolder.innerHTML = '';
+    listHolder.appendChild(emptyState({ icon: '⚠', title: 'Couldn’t load your study list', message: err.message }));
+    return;
   }
 
-  if (!modulesListEl) return;
-
-  modulesListEl.innerHTML = (studyData.modules || [])
-    .map((mod, idx) => {
-      const concepts = Array.isArray(mod.importantConcepts) ? mod.importantConcepts : [];
-      const practiceQ = mod.practiceQuestion || null;
-
-      return `
-        <section class="study-module-card">
-          <div class="study-module-header">
-            <div>
-              <span style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--primary);">
-                Concept Module ${idx + 1}
-              </span>
-              <h2 style="font-size:1.35rem; margin-top:0.2rem;">${escapeHtml(mod.topic || "Core Concept")}</h2>
-            </div>
-            <span class="badge badge-warning">Targeted Revision</span>
-          </div>
-
-          <div style="margin-bottom:1.25rem;">
-            <h4 style="font-size:0.82rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:0.45rem;">
-              Short Revision Notes
-            </h4>
-            <p style="font-size:0.96rem; color:var(--text-primary); line-height:1.68; white-space:pre-wrap;">${escapeHtml(mod.revisionNotes || "")}</p>
-          </div>
-
-          <div class="study-notes-grid" style="margin-bottom:1.25rem;">
-            <div class="study-subbox">
-              <h4>Important Concepts & Key Rules</h4>
-              <ul style="padding-left:1.15rem; display:flex; flex-direction:column; gap:0.4rem; color:var(--text-secondary); font-size:0.9rem;">
-                ${concepts.map((c) => `<li>${escapeHtml(c)}</li>`).join("")}
-              </ul>
-            </div>
-            <div class="study-subbox">
-              <h4>Worked Example (${escapeHtml(studyData.classLevel)} Level)</h4>
-              <div style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6; white-space:pre-wrap;">${escapeHtml(mod.workedExample || "")}</div>
-            </div>
-          </div>
-
-          ${
-            practiceQ
-              ? `
-              <div class="study-subbox" style="border-color:var(--border-highlight);">
-                <h4>Quick Concept Check</h4>
-                <p style="font-weight:600; color:var(--text-primary); margin-bottom:0.75rem;">${escapeHtml(practiceQ.question || "")}</p>
-                <button type="button" class="btn btn-secondary btn-sm" data-reveal-check="${idx}">
-                  Reveal Answer & Explanation
-                </button>
-                <div id="study-check-ans-${idx}" style="display:none; margin-top:0.75rem; padding-top:0.75rem; border-top:1px solid var(--border-subtle); font-size:0.88rem;">
-                  <div style="color:var(--success); font-weight:700; margin-bottom:0.25rem;">
-                    Answer: ${escapeHtml(practiceQ.answer || "")}
-                  </div>
-                  <div style="color:var(--text-secondary);">${escapeHtml(practiceQ.explanation || "")}</div>
-                </div>
-              </div>
-            `
-              : ""
-          }
-        </section>
-      `;
-    })
-    .join("");
-
-  modulesListEl.querySelectorAll("[data-reveal-check]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = btn.getAttribute("data-reveal-check");
-      const box = document.getElementById(`study-check-ans-${idx}`);
-      if (box) {
-        box.style.display = "block";
-        btn.style.display = "none";
-      }
-    });
+  const withMistakes = attempts.filter((a) => {
+    const wrong = (a.weakAreas?.length || 0) > 0 || countWrongQuick(a) > 0;
+    return wrong;
   });
+
+  listHolder.innerHTML = '';
+
+  if (sessions.length) {
+    listHolder.appendChild(el('h2', { class: 'section-label', text: 'Your study sessions' }));
+    for (const s of sessions.slice(0, 6)) {
+      listHolder.appendChild(
+        el(
+          'button',
+          { class: 'card card-hover history-item', onclick: () => renderNotesView(s.notes, s.attemptId, s.config) },
+          el('span', { class: 'ri-score', style: 'background:var(--accent-soft);color:var(--accent)', text: '✎' }),
+          el(
+            'span',
+            { class: 'hi-main' },
+            el('span', { class: 'hi-title', text: s.notes?.title || 'Study session' }),
+            el('span', { class: 'hi-meta' }, el('span', { text: `${s.config?.subject || ''} · ${formatDate(s.createdAt)}` }))
+          ),
+          el('span', { class: 'badge badge-violet', text: 'Notes ready' })
+        )
+      );
+    }
+  }
+
+  listHolder.appendChild(el('h2', { class: 'section-label', style: 'margin-top:1.8rem', text: 'Build a session from an exam' }));
+
+  if (!withMistakes.length) {
+    listHolder.appendChild(
+      emptyState({
+        title: attempts.length ? 'No mistakes to study — impressive.' : 'Complete an exam first.',
+        message: attempts.length
+          ? 'Take another practice and EXAMIVO will find new material to study.'
+          : 'Once you complete a practice, its wrong answers become revision notes here.',
+        actionLabel: attempts.length ? 'Start New Practice' : 'Start Preparing',
+        onAction: () => (location.href = 'setup.html'),
+      })
+    );
+    return;
+  }
+
+  for (const a of withMistakes.slice(0, 8)) {
+    listHolder.appendChild(
+      el(
+        'button',
+        {
+          class: 'card card-hover history-item',
+          onclick: () => (location.href = `study.html?attempt=${encodeURIComponent(a.id)}`),
+        },
+        el('span', { class: 'ri-score tabular score-mid', text: `${Math.round(a.percentage ?? 0)}%` }),
+        el(
+          'span',
+          { class: 'hi-main' },
+          el('span', { class: 'hi-title', text: `${a.config?.subject || 'Practice'} · ${examTypeLabel(a.config?.examType)}` }),
+          el(
+            'span',
+            { class: 'hi-meta' },
+            el('span', { text: a.config?.classLevel || '' }),
+            el('span', { text: formatDate(a.completedAt) })
+          )
+        ),
+        el('span', { class: 'badge badge-amber', text: `${countWrongQuick(a)} to review` })
+      )
+    );
+  }
 }
 
-async function handleRetestMe() {
-  if (!activeStudyData) return;
+function countWrongQuick(attempt) {
+  if (!attempt.questions) return 0;
+  let wrong = 0;
+  attempt.questions.forEach((q) => {
+    const r = attempt.answers?.[q.id];
+    if (r == null || r === '') { wrong++; return; }
+    if ((q.type === 'multiple_choice' || q.type === 'true_false' || q.type === 'scenario') && Number(r) !== q.correctAnswer) wrong++;
+    else if (q.type === 'fill_blank' && !(q.acceptedAnswers || []).includes(String(r).trim().toLowerCase())) wrong++;
+    else if (q.type === 'calculation' && q.numericAnswer != null) {
+      const v = parseFloat(String(r).replace(/[^0-9.\-]/g, ''));
+      if (Number.isNaN(v) || Math.abs(v - q.numericAnswer) > (q.tolerance ?? 0.01)) wrong++;
+    } else if (q.type === 'matching') {
+      if ((q.pairs || []).some((p) => r[p.left] !== p.right)) wrong++;
+    } else if (q.modelAnswer) {
+      const g = attempt.graded?.[q.id];
+      if (g && !g.selfReview && g.score < g.maxScore * 0.6) wrong++;
+    }
+  });
+  return wrong;
+}
 
-  const retestBtn = document.getElementById("retest-me-btn");
-  if (retestBtn) {
-    retestBtn.disabled = true;
-    retestBtn.textContent = "Building Your Retest...";
+/* ---------------- Session: generate + render notes ---------------- */
+
+async function runStudySession(id) {
+  let attempt = null;
+  try {
+    attempt = await Store.getAttempt(id);
+  } catch {
+    attempt = null;
   }
+  if (!attempt) {
+    root.querySelector('.history-head p').textContent = '';
+    listHolder.innerHTML = '';
+    listHolder.appendChild(
+      emptyState({
+        title: 'That exam could not be found.',
+        message: 'It may live on another device. Open an exam from this device history instead.',
+        actionLabel: 'Go to Study',
+        onAction: () => (location.href = 'study.html'),
+      })
+    );
+    return;
+  }
+
+  const wrongQuestions = collectWrong(attempt);
+  const weakTopics = (attempt.weakAreas || []).map((w) => w.concept);
+
+  if (!wrongQuestions.length && !weakTopics.length) {
+    listHolder.innerHTML = '';
+    listHolder.appendChild(
+      emptyState({
+        title: 'Nothing to fix in that exam.',
+        message: 'You answered everything correctly. Run a harder practice and come back.',
+        actionLabel: 'New Practice',
+        onAction: () => (location.href = 'setup.html'),
+      })
+    );
+    return;
+  }
+
+  const loading = createAILoading({
+    title: 'BUILDING YOUR NEXT PRACTICE',
+    subtitle: `${attempt.config?.subject || 'Study'} · revision from your mistakes`,
+    stages: ['Collecting your mistakes', 'Targeting weak concepts', 'Building notes, examples & practice'],
+  });
+  document.body.appendChild(loading.overlay);
 
   try {
-    // If the study session already includes validated retest questions, use them or generate fresh ones
-    let questions = [];
-    if (Array.isArray(activeStudyData.retestQuestions) && activeStudyData.retestQuestions.length >= 4) {
-      questions = activeStudyData.retestQuestions
-        .map((q, i) => validateAndNormalizeQuestion(q, i, activeStudyData.subject, "Medium"))
-        .filter(Boolean);
-    }
+    loading.start(0);
+    loading.done(0);
+    loading.start(1, `Focusing on ${weakTopics.length || wrongQuestions.length} concept${(weakTopics.length || wrongQuestions.length) > 1 ? 's' : ''}`);
+    const notes = await studyMistakes({
+      config: attempt.config,
+      wrongQuestions: wrongQuestions.slice(0, 12),
+      weakTopics,
+    });
+    loading.done(1);
+    loading.start(2);
+    loading.done(2);
+    loading.complete('Your revision notes are ready.');
+    trackEvent('study_generated', { subject: attempt.config?.subject });
 
-    if (questions.length < 4) {
-      const blueprint = await runWeakAreaPracticePipeline({
-        classLevel: activeStudyData.classLevel,
-        subject: activeStudyData.subject,
-        examType: activeStudyData.examType,
-        difficulty: "Exam Level",
-        questionCount: 6,
-        weakTopics: activeStudyData.topicsCovered || [activeStudyData.subject],
-        missedQuestions: []
-      });
-      questions = blueprint.questions;
-    }
-
-    const retestExamBundle = {
-      examId: generateId("exam"),
-      title: `${activeStudyData.subject} — Mastery Retest`,
-      classLevel: activeStudyData.classLevel,
-      subject: activeStudyData.subject,
-      examType: activeStudyData.examType,
-      difficulty: "Exam Level",
-      examMode: "exam",
-      timed: true,
-      durationSeconds: questions.length * 90,
-      materialSummary: `Targeted Retest on ${(activeStudyData.topicsCovered || []).join(", ")}`,
-      examFocus: {
-        highPriority: (activeStudyData.topicsCovered || []).map((t) => ({
-          concept: t,
-          reason: "Targeted retest after reviewing your mistake revision guide."
-        })),
-        alsoRevise: [],
-        rationale: "Prioritized based on the concepts you just revised in Study My Mistakes."
-      },
-      questions,
-      startedAtIso: new Date().toISOString()
+    const session = {
+      id: `study_${Date.now().toString(36)}`,
+      attemptId: attempt.id,
+      config: attempt.config,
+      notes,
+      createdAt: Date.now(),
     };
+    try {
+      await Store.saveStudySession(session);
+    } catch (err) {
+      toast(err.message || 'Study session kept on this device.', 'warning');
+    }
 
-    setActiveExamSession(retestExamBundle);
-    saveExamToFirestore(retestExamBundle).catch(() => {});
-    trackEvent("practice_repeated", { mode: "retest_me", subject: activeStudyData.subject });
-
-    navigateTo("exam.html");
+    await new Promise((r) => setTimeout(r, 480));
+    await loading.close();
+    renderNotesView(notes, attempt.id, attempt.config);
   } catch (err) {
-    showToast(err.message || "Could not start retest right now.", "danger");
-    if (retestBtn) {
-      retestBtn.disabled = false;
-      retestBtn.textContent = "Retest Me";
+    loading.fail(err instanceof Error && err.message.length < 200 ? err.message : null);
+    await new Promise((r) => setTimeout(r, 1400));
+    await loading.close();
+    toast(err.message || 'EXAMIVO could not build your study session. Try again.', 'error', { duration: 4600 });
+    setTimeout(() => (location.href = 'study.html'), 900);
+  }
+}
+
+function collectWrong(attempt) {
+  const wrong = [];
+  for (const q of attempt.questions || []) {
+    const r = attempt.answers?.[q.id];
+    let isWrong = false;
+    if (r == null || r === '') {
+      isWrong = true; // unanswered counts as something to study
+    } else if (q.type === 'multiple_choice' || q.type === 'true_false' || q.type === 'scenario') {
+      isWrong = Number(r) !== q.correctAnswer;
+    } else if (q.type === 'fill_blank') {
+      isWrong = !(q.acceptedAnswers || []).includes(String(r).trim().toLowerCase());
+    } else if (q.type === 'calculation' && q.numericAnswer != null) {
+      const v = parseFloat(String(r).replace(/[^0-9.\-]/g, ''));
+      isWrong = Number.isNaN(v) || Math.abs(v - q.numericAnswer) > (q.tolerance ?? 0.01);
+    } else if (q.type === 'matching') {
+      isWrong = (q.pairs || []).some((p) => r[p.left] !== p.right);
+    } else {
+      const g = attempt.graded?.[q.id];
+      isWrong = g ? g.score < g.maxScore * 0.6 : false;
+    }
+    if (isWrong) {
+      wrong.push({
+        question: q.question,
+        type: q.type,
+        topic: q.topic,
+        yourAnswer: typeof r === 'number' && q.options ? q.options[r] : r || '(no answer)',
+        correctAnswer:
+          q.options && typeof q.correctAnswer === 'number'
+            ? q.options[q.correctAnswer]
+            : (q.acceptedAnswers || []).join(' / ') || q.modelAnswer || q.numericAnswer ||
+              (q.pairs || []).map((p) => `${p.left} → ${p.right}`).join('; '),
+        explanation: q.explanation,
+      });
     }
   }
+  return wrong;
+}
+
+/* ---------------- Notes view ---------------- */
+
+function renderNotesView(notes, attemptId, config) {
+  document.querySelector('.history-head').innerHTML = `
+    <div>
+      <h1>${escapeHtml(notes?.title || 'Study Session')}</h1>
+      <p>${escapeHtml(config?.subject || '')} · revision notes, examples and practice built from your mistakes.</p>
+    </div>`;
+
+  listHolder.innerHTML = '';
+  const wrap = el('div', { class: 'study-notes fade-up' });
+
+  /* Concepts */
+  if (notes?.concepts?.length) {
+    wrap.appendChild(el('div', { class: 'focus-tags', style: 'margin:0 0 1.6rem' }, notes.concepts.map((c) => el('span', { class: 'focus-tag priority', text: c }))));
+  }
+
+  /* Revision notes */
+  for (const note of notes?.revisionNotes || []) {
+    wrap.appendChild(
+      el(
+        'div',
+        { class: 'card review-item' },
+        el('h3', { style: 'font-size:1.05rem;margin-bottom:.5rem', text: note.title }),
+        el('div', { class: 'rv-explanation', style: 'margin:0', text: note.body })
+      )
+    );
+  }
+
+  /* Examples */
+  if (notes?.examples?.length) {
+    wrap.appendChild(el('h2', { class: 'section-label', style: 'margin-top:1.8rem', text: 'Worked Examples' }));
+    for (const ex of notes.examples) {
+      const solution = el('div', { class: 'rv-explanation', style: 'display:none;margin-top:.7rem', html: `<strong>Solution:</strong> ${escapeHtml(ex.solution)}` });
+      wrap.appendChild(
+        el(
+          'div',
+          { class: 'card review-item' },
+          el('p', { style: 'font-weight:500', text: ex.prompt }),
+          el('button', { class: 'btn btn-secondary btn-sm', style: 'margin-top:.8rem', text: 'Show solution', onclick: (e) => { solution.style.display = 'block'; e.currentTarget.remove(); } }),
+          solution
+        )
+      );
+    }
+  }
+
+  /* Practice questions */
+  if (notes?.practiceQuestions?.length) {
+    wrap.appendChild(el('h2', { class: 'section-label', style: 'margin-top:1.8rem', text: 'Quick Practice' }));
+    for (const pq of notes.practiceQuestions) {
+      const answer = el('div', { class: 'rv-explanation', style: 'display:none;margin-top:.7rem', html: `<strong>Answer:</strong> ${escapeHtml(pq.answer)}${pq.explanation ? ` — ${escapeHtml(pq.explanation)}` : ''}` });
+      wrap.appendChild(
+        el(
+          'div',
+          { class: 'card review-item' },
+          el('p', { style: 'font-weight:500', text: pq.question }),
+          el('button', { class: 'btn btn-secondary btn-sm', style: 'margin-top:.8rem', text: 'Reveal answer', onclick: (e) => { answer.style.display = 'block'; e.currentTarget.remove(); } }),
+          answer
+        )
+      );
+    }
+  }
+
+  /* Actions */
+  wrap.appendChild(
+    el(
+      'div',
+      { class: 'results-actions' },
+      el(
+        'button',
+        {
+          class: 'action-card primary',
+          onclick: () => {
+            const weakConcepts = notes?.concepts || [];
+            const configNew = {
+              ...(config || {}),
+              count: 10,
+              focusConcepts: weakConcepts.length ? weakConcepts : null,
+            };
+            const analysis = {
+              keyConcepts: weakConcepts,
+              focus: { highPriority: weakConcepts, alsoRevise: [] },
+            };
+            Handoff.set('examivo.retest', { config: configNew, analysis, retestOf: attemptId });
+            trackEvent('practice_repeated', { source: 'study', target: 'retest' });
+            location.href = 'exam.html?retest=1';
+          },
+        },
+        el('span', { class: 'ac-icon', text: '↻', 'aria-hidden': 'true' }),
+        el('h3', { text: 'Retest Me' }),
+        el('p', { text: 'A fresh exam on these exact concepts — prove it stuck.' })
+      ),
+      el(
+        'button',
+        { class: 'action-card', onclick: () => (location.href = 'study.html') },
+        el('span', { class: 'ac-icon', text: '✎', 'aria-hidden': 'true' }),
+        el('h3', { text: 'Study something else' }),
+        el('p', { text: 'Build revision from another exam.' })
+      ),
+      el(
+        'button',
+        { class: 'action-card', onclick: () => (location.href = 'app.html') },
+        el('span', { class: 'ac-icon', text: '◎', 'aria-hidden': 'true' }),
+        el('h3', { text: 'Back to Dashboard' }),
+        el('p', { text: 'See your overall progress.' })
+      )
+    )
+  );
+
+  listHolder.appendChild(wrap);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }

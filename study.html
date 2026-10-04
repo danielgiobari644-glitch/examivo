@@ -1,117 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080A0F" />
-  <meta name="description" content="Study My Mistakes — Targeted Revision Notes, Examples, and Retesting on EXAMIVO." />
-  <title>Study My Mistakes — EXAMIVO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Study — EXAMIVO</title>
+  <meta name="description" content="Revision notes and practice built from your mistakes." />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+  <meta name="theme-color" content="#0a0b10" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="logo.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="global.css" />
-  <link rel="stylesheet" href="animations.css" />
-  <link rel="stylesheet" href="results.css" />
+  <script>try{var m=localStorage.getItem("examivo.theme")||"dark";if(m==="system")m=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=m;}catch(e){}</script>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/results.css" />
 </head>
-<body data-page="study">
-  <!-- Top Navigation -->
-  <header class="top-nav">
-    <div class="nav-inner">
-      <a href="index.html" class="brand-link" data-smooth-nav>
-        <span class="brand-core-mini" aria-hidden="true"></span>
-        <span>EXAMIVO</span>
-      </a>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-body">
+    <header class="app-header" id="app-header"></header>
 
-      <nav class="nav-links" aria-label="Primary navigation">
-        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
-        <a href="setup.html" class="nav-link" data-smooth-nav>New Practice</a>
-        <a href="history.html" class="nav-link" data-smooth-nav>History</a>
-        <a href="study.html" class="nav-link active">Study Mistakes</a>
-      </nav>
-
-      <div class="nav-actions">
-        <span class="net-pill hidden" role="status">Offline</span>
-
-        <div class="theme-switcher" role="group" aria-label="Color theme">
-          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          </button>
-        </div>
-
-        <div id="nav-auth-slot"></div>
-      </div>
-    </div>
-  </header>
-
-  <main class="page-shell">
-    <div class="container-narrow study-main" id="study-content-root">
-      <!-- AI Loading Box while Study Guide is synthesized -->
-      <div id="study-loading-box" class="empty-state" style="display:none; padding:3.5rem 1.5rem;">
-        <div id="study-ai-core-slot"></div>
-        <h2 style="font-size:1.35rem; margin-top:0.5rem;">BUILDING YOUR PERSONALIZED STUDY GUIDE</h2>
-        <p>Analyzing missed questions and crafting class-adapted revision notes, key rules, and worked examples...</p>
-      </div>
-
-      <!-- Loaded Study Modules Container -->
-      <div id="study-modules-container" style="display:none;">
-        <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:1rem; margin-bottom:2rem;">
+    <main id="main">
+      <div class="history-wrap" data-study-root>
+        <div class="history-head">
           <div>
-            <div style="font-size:0.76rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--primary); margin-bottom:0.35rem;">
-              Targeted Remediation
-            </div>
-            <h1 style="font-size:clamp(1.65rem, 3vw, 2.25rem); margin-bottom:0.5rem;">Study My Mistakes</h1>
-            <div id="study-header-meta" style="display:flex; flex-wrap:wrap; gap:0.5rem;"></div>
-          </div>
-
-          <div style="display:flex; gap:0.75rem;">
-            <a href="results.html" class="btn btn-secondary" data-smooth-nav>← Back to Results</a>
-            <button type="button" class="btn btn-primary btn-lg" id="retest-me-btn">
-              <span>Retest Me</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
+            <h1>Study</h1>
+            <p>Pick a completed exam and turn its mistakes into revision.</p>
           </div>
         </div>
-
-        <div id="study-modules-list"></div>
-
-        <!-- Bottom Retest Me Callout Card -->
-        <div class="card" style="text-align:center; padding:2.25rem; background:linear-gradient(145deg, var(--surface-elevated) 0%, var(--surface) 100%); border-color:var(--border-highlight);">
-          <h3 style="font-size:1.3rem; margin-bottom:0.45rem;">Ready to prove you've mastered these concepts?</h3>
-          <p style="max-width:520px; margin:0 auto 1.35rem;">
-            Launch a focused retest examination targeting the exact concepts covered in your revision notes above.
-          </p>
-          <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('retest-me-btn').click()">
-            Retest Me Now →
-          </button>
+        <div data-sessions-list>
+          <div class="skeleton" style="height:88px;border-radius:16px"></div>
         </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
-  <!-- Mobile Bottom Navigation -->
-  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Home</span>
-    </a>
-    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Dashboard</span>
-    </a>
-    <a href="setup.html" class="mobile-nav-item" data-smooth-nav>
-      <span>Prepare</span>
-    </a>
-    <a href="history.html" class="mobile-nav-item" data-smooth-nav>
-      <span>History</span>
-    </a>
-  </nav>
-
-  <script type="module" src="study.js"></script>
+  <script type="module" src="js/study.js"></script>
 </body>
 </html>

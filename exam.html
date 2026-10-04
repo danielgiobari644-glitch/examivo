@@ -1,161 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#080A0F" />
-  <meta name="description" content="Active Examination Session — EXAMIVO" />
-  <title>Examination Session — EXAMIVO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Your Exam — EXAMIVO</title>
+  <meta name="description" content="Sit your EXAMIVO practice exam." />
+  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
+  <meta name="theme-color" content="#0a0b10" />
   <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="logo.svg" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="global.css" />
-  <link rel="stylesheet" href="animations.css" />
-  <link rel="stylesheet" href="setup.css" />
-  <link rel="stylesheet" href="exam.css" />
+  <script>try{var m=localStorage.getItem("examivo.theme")||"dark";if(m==="system")m=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=m;}catch(e){}</script>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <link rel="stylesheet" href="css/exam.css" />
 </head>
-<body data-page="exam">
-  <!-- Clean Exam Header Bar -->
-  <header class="exam-header-bar">
-    <div class="exam-header-inner">
-      <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
-        <a href="app.html" class="brand-link" title="Return to Dashboard">
-          <span class="brand-core-mini" aria-hidden="true"></span>
-          <span>EXAMIVO</span>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="exam-body" id="exam-body" hidden>
+
+    <header class="exam-header">
+      <div class="container">
+        <a class="brand" href="app.html" aria-label="EXAMIVO">
+          <img src="assets/logo/logo.svg" alt="EXAMIVO" width="130" height="24" />
         </a>
-        <div class="exam-context-pills">
-          <span class="badge badge-neutral" id="exam-header-subject">Subject</span>
-          <span class="badge badge-neutral" id="exam-header-class">Class</span>
-          <span class="badge badge-neutral" id="exam-header-type">Exam</span>
-          <span class="badge badge-primary" id="exam-header-mode">EXAM MODE</span>
+        <div class="exam-meta" data-exam-meta></div>
+        <span class="spacer"></span>
+        <div class="exam-timer" data-timer hidden>
+          <span class="et-label">TIME REMAINING</span>
+          <span class="tabular" data-timer-value>--:--</span>
         </div>
+        <button class="exam-quit" data-quit aria-label="Leave exam">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
+    </header>
 
-      <div style="display:flex; align-items:center; gap:0.65rem;">
-        <!-- Timer -->
-        <div class="exam-timer-box" id="exam-timer-box" role="timer" aria-live="off">
-          <span class="exam-timer-label" id="exam-timer-label">TIME REMAINING</span>
-          <span id="exam-timer-value">00:00</span>
+    <div class="exam-layout">
+      <main id="main">
+        <article class="question-card" data-question-card><!-- question renders here --></article>
+      </main>
+
+      <aside class="exam-navpanel" data-navpanel aria-label="Question navigation">
+        <button class="modal-close navpanel-close" data-navpanel-close aria-label="Close navigation" style="position:absolute;top:.7rem;right:.7rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <h3>Questions</h3>
+        <div class="qnav-grid" data-qnav></div>
+        <div class="qnav-legend">
+          <span class="lg"><i class="ans" aria-hidden="true"></i> Answered</span>
+          <span class="lg"><i aria-hidden="true"></i> Unanswered</span>
+          <span class="lg"><i class="flg" aria-hidden="true"></i> Flagged</span>
+          <span class="lg"><i class="cur" aria-hidden="true"></i> Current</span>
         </div>
-
-        <div class="theme-switcher" role="group" aria-label="Color theme">
-          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          </button>
-        </div>
-
-        <button type="button" class="btn btn-primary btn-sm" id="exam-submit-btn">Submit</button>
-      </div>
+      </aside>
     </div>
-  </header>
 
-  <main class="page-shell">
-    <div class="container">
-      <div class="exam-workspace" id="exam-workspace-container">
-        <!-- Left/Main: Active Question Card -->
-        <section class="question-stage-card" aria-live="polite">
-          <div id="question-transition-body" class="question-enter">
-            <div class="question-top-meta">
-              <span class="question-counter-label" id="question-counter-label">Question 1 of 10</span>
-              <div class="question-tags">
-                <span class="badge badge-neutral" id="question-topic-badge">Topic</span>
-                <span class="badge badge-neutral" id="question-type-badge">Multiple Choice</span>
-                <span class="badge badge-primary" id="question-difficulty-badge">MEDIUM</span>
-              </div>
-            </div>
+    <div class="navpanel-backdrop" data-navpanel-backdrop></div>
 
-            <div class="question-prompt-text" id="question-prompt-text"></div>
-
-            <!-- Interactive Answer Area -->
-            <div id="question-interactive-area"></div>
-
-            <!-- Practice Mode Instant Feedback Drawer -->
-            <div id="practice-feedback-drawer" style="display:none;"></div>
-          </div>
-
-          <!-- Question Bottom Action Bar: Previous | Flag | Next | Submit -->
-          <div class="question-action-bar">
-            <div class="question-action-group">
-              <button type="button" class="btn btn-secondary" id="exam-prev-btn">← Previous</button>
-              <button type="button" class="btn btn-secondary btn-flag" id="exam-flag-btn">⚐ Flag</button>
-            </div>
-
-            <div class="question-action-group">
-              <button type="button" class="btn btn-primary" id="exam-next-btn">Next →</button>
-            </div>
-          </div>
-        </section>
-
-        <!-- Right: Question Navigation Panel -->
-        <aside class="question-nav-panel" aria-label="Question navigation">
-          <div class="nav-panel-header">
-            <span class="nav-panel-title">Question Navigator</span>
-            <span style="font-size:0.78rem; color:var(--text-secondary);" id="nav-answered-summary">0 / 10 answered</span>
-          </div>
-
-          <div class="question-num-grid" id="question-num-grid"></div>
-
-          <div class="nav-legend">
-            <div class="legend-item">
-              <span class="legend-swatch current"></span>
-              <span>Current</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-swatch answered"></span>
-              <span>Answered</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-swatch flagged"></span>
-              <span>Flagged</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-swatch unanswered"></span>
-              <span>Unanswered</span>
-            </div>
-          </div>
-
-          <button type="button" class="btn btn-primary" id="panel-submit-btn" style="width:100%;">
-            Submit Examination
-          </button>
-        </aside>
-      </div>
-    </div>
-  </main>
-
-  <!-- Submit Confirmation Modal -->
-  <div class="modal-backdrop" id="submit-confirm-modal" aria-hidden="true" role="dialog" aria-labelledby="submit-modal-title">
-    <div class="modal-dialog">
-      <div class="modal-header">
-        <div>
-          <h2 class="modal-title" id="submit-modal-title">Submit Examination?</h2>
-          <p class="modal-subtitle" id="submit-modal-summary">
-            Are you ready for EXAMIVO to grade your examination and identify weak areas?
-          </p>
-        </div>
-        <button type="button" class="modal-close" data-close-modal="submit-confirm-modal" aria-label="Close">✕</button>
-      </div>
-      <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.25rem;">
-        <button type="button" class="btn btn-secondary" data-close-modal="submit-confirm-modal">Keep Reviewing</button>
-        <button type="button" class="btn btn-primary" id="confirm-submit-exam-btn">Submit &amp; Analyze</button>
+    <div class="exam-actions">
+      <div class="container">
+        <button class="btn btn-secondary mobilenav-toggle" data-navpanel-toggle>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <span data-nav-progress>0/0</span>
+        </button>
+        <button class="btn btn-secondary" data-prev>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+          Previous
+        </button>
+        <button class="btn btn-secondary flag-btn" data-flag>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>
+          Flag
+        </button>
+        <span class="spacer"></span>
+        <span class="progress-text" data-progress-text></span>
+        <button class="btn btn-secondary" data-next>
+          Next
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+        </button>
+        <button class="btn btn-primary" data-submit>Submit</button>
       </div>
     </div>
   </div>
 
-  <!-- FULL-SCREEN SUBMISSION AI ANALYSIS STATE: "ANALYZING YOUR PERFORMANCE" -->
-  <div class="ai-thinking-overlay" id="submission-analysis-overlay" aria-hidden="true" role="dialog" aria-labelledby="submission-analysis-title">
-    <div class="thinking-container">
-      <div id="submission-core-slot"></div>
-      <h2 class="thinking-heading" id="submission-analysis-title">ANALYZING YOUR PERFORMANCE</h2>
-      <p class="thinking-subcontext">Evaluating responses and isolating concept mastery patterns</p>
-      <div class="thinking-stages-list" id="submission-stages-list"></div>
-    </div>
-  </div>
+  <!-- AI generation happens here -->
+  <div id="generation-root"></div>
 
-  <script type="module" src="exams.js"></script>
+  <script type="module" src="js/questions.js"></script>
+  <script type="module" src="js/exams.js"></script>
 </body>
 </html>

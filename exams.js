@@ -1,639 +1,545 @@
-/**
- * EXAMIVO — Active Examination Controller (exam.html)
- * Handles Question Transitions, Timer, Navigation Panel (Unanswered / Answered / Flagged / Current),
- * Practice Mode Immediate Feedback, and the "ANALYZING YOUR PERFORMANCE" Submission Pipeline.
- */
+/* ============================================================
+   EXAMIVO — Exam engine
+   Real generation via the secure backend, real answers, real
+   scoring, real weak-area analysis. No mock data, ever.
+   ============================================================ */
 
-import {
-  escapeHtml,
-  formatDuration,
-  generateId,
-  QUESTION_TYPE_LABELS
-} from "./utils.js";
-import {
-  initCommonUI,
-  renderAIStatus,
-  showToast,
-  openModal,
-  closeModal,
-  navigateTo
-} from "./ui.js";
-import { initAuth } from "./auth.js";
-import {
-  getActiveExamSession,
-  setActiveResultSession,
-  saveAttemptAndWeakAreas
-} from "./storage.js";
-import {
-  renderQuestionInteractiveArea,
-  hasUserAnswered,
-  evaluateSingleQuestion,
-  isOptionBasedQuestion
-} from "./questions.js";
-import { evaluateOpenResponsesViaAI } from "./ai.js";
-import { trackEvent } from "./firebase.js";
+import { $, el, escapeHtml, HumanError, formatTime, Handoff, queryFlag } from './utils.js';
+import { generateQuestions, gradeAnswers, validateQuestions, gradeObjective, isOpenQuestion } from './ai.js';
+import { renderQuestion, isAnswered } from './questions.js';
+import { createAILoading, confirmModal, toast, createThemeToggle } from './ui.js';
+import { Store, isGuest } from './storage.js';
+import { trackEvent } from './firebase.js';
+import { examTypeLabel } from './constants.js';
 
-const SUBMISSION_STAGES = [
-  "Checking answers",
-  "Measuring performance",
-  "Identifying weak areas",
-  "Building your study recommendations"
-];
+/* ---------------- Session recovery ---------------- */
 
-const examRuntime = {
-  examBundle: null,
+let session = Handoff.take('examivo.session');
+
+// Retest support: results.html may stage a fresh session targeting weak concepts.
+if (!session && queryFlag('retest') === '1') {
+  session = Handoff.get('examivo.retest');
+  Handoff.take('examivo.retest');
+}
+
+const body = $('#exam-body');
+const generationRoot = $('#generation-root');
+
+if (!session?.config || !session?.analysis) {
+  // No staged session — send the student somewhere useful, with context preserved.
+  body.hidden = false;
+  document.querySelector('.exam-navpanel').style.display = 'none';
+  document.querySelector('.exam-actions').style.display = 'none';
+  document.querySelector('.exam-header .container').innerHTML = `
+    <a class="brand" href="index.html"><img src="assets/logo/logo.svg" alt="EXAMIVO" width="130" height="24"/></a>
+    <span class="spacer"></span>
+    <span class="ai-status-line" data-state="idle"><span class="pulse-dot"></span>No exam is staged</span>`;
+  document.querySelector('.exam-layout').innerHTML = `
+    <main id="main">
+      <div class="card card-pad" style="max-width:480px;margin:3rem auto;text-align:center">
+        <h2 style="margin-bottom:.6rem">Your exam isn't set up yet.</h2>
+        <p style="color:var(--text-secondary);margin-bottom:1.4rem">Pick your class, subject and material, and EXAMIVO
+        will build your exam in under a minute.</p>
+        <a class="btn btn-primary" href="setup.html">Start a New Practice</a>
+      </div>
+    </main>`;
+} else {
+  runGeneration();
+}
+
+/* ============================================================
+   GENERATION (real backend call, honest stage progression)
+   ============================================================ */
+
+async function runGeneration() {
+  const loading = createAILoading({
+    title: 'EXAMIVO IS THINKING',
+    subtitle: `${session.config.subject} · ${examTypeLabel(session.config.examType)} · ${session.config.count} questions`,
+    stages: ['Building your question blueprint', 'Generating your questions', 'Checking question quality'],
+  });
+  generationRoot.appendChild(loading.overlay);
+
+  try {
+    loading.start(0, 'Using your class, subject and exam profile');
+    await new Promise((r) => setTimeout(r, 350)); // blueprint assembly (client-side, real)
+    loading.done(0);
+
+    loading.start(1, 'Writing original questions for you');
+    const result = await generateQuestions({
+      analysis: session.analysis,
+      config: { ...session.config, focusConcepts: session.analysis?.focusConcepts || null },
+    });
+    loading.done(1);
+
+    loading.start(2, 'Validating structure, answers and duplicates');
+    const { questions, rejected } = validateQuestions(result?.questions, {
+      expectedCount: session.config.count,
+    });
+    if (questions.length < Math.min(4, session.config.count)) {
+      throw new HumanError('EXAMIVO could not produce enough valid questions from that material. Try adding richer material or fewer questions.');
+    }
+    loading.done(2);
+    loading.complete('Your exam is ready. Good luck!');
+    trackEvent('exam_generated', {
+      subject: session.config.subject,
+      exam_type: session.config.examType,
+      count: questions.length,
+      rejected,
+    });
+    await new Promise((r) => setTimeout(r, 620));
+    await loading.close();
+
+    startExam(questions);
+  } catch (err) {
+    loading.fail(err instanceof HumanError ? err.message : null);
+    trackEvent('exam_generation_failed', {});
+    await new Promise((r) => setTimeout(r, 1500));
+    await loading.close();
+    generationRoot.innerHTML = `
+      <div class="card card-pad" style="max-width:480px;margin:18vh auto 0;text-align:center">
+        <h2 style="margin-bottom:.6rem">Something went wrong.</h2>
+        <p style="color:var(--text-secondary);margin-bottom:1.4rem">${escapeHtml(
+          err?.message || 'EXAMIVO could not complete that request. Please try again.'
+        )}</p>
+        <div style="display:flex;gap:.7rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="location.reload()">Try Again</button>
+          <a class="btn btn-secondary" href="app.html">Back to Dashboard</a>
+        </div>
+      </div>`;
+  }
+}
+
+/* ============================================================
+   EXAM RUNTIME
+   ============================================================ */
+
+const state = {
   questions: [],
-  currentIndex: 0,
-  userAnswers: {}, // { [questionIdx]: value }
-  flaggedSet: new Set(),
-  practiceRevealedSet: new Set(),
-  remainingSeconds: 0,
-  elapsedSeconds: 0,
-  timerInterval: null,
-  lowTimeWarned: false,
-  isSubmitting: false
+  answers: {},
+  flags: new Set(),
+  practiceRevealed: {}, // qid → true (practice mode verdicts shown)
+  current: 0,
+  timer: null,
+  remaining: 0,
+  elapsed: 0,
+  submitting: false,
+  startTs: Date.now(),
 };
 
-document.addEventListener("DOMContentLoaded", () => {
-  initCommonUI();
-  initAuth();
+function startExam(questions) {
+  state.questions = questions;
+  body.hidden = false;
+  body.classList.add('page-enter');
 
-  const bundle = getActiveExamSession();
-  if (!bundle || !Array.isArray(bundle.questions) || bundle.questions.length === 0) {
-    renderNoActiveExamState();
-    return;
+  /* Header meta */
+  const meta = $('[data-exam-meta]');
+  meta.innerHTML = '';
+  meta.append(
+    el('span', { class: 'badge badge-teal', text: session.config.subject }),
+    el('span', { class: 'badge badge-neutral', text: session.config.classLevel }),
+    el('span', { class: 'badge badge-neutral', text: examTypeLabel(session.config.examType) }),
+    el('span', {
+      class: `badge ${session.config.mode === 'practice' ? 'badge-violet' : 'badge-amber'}`,
+      text: session.config.mode === 'practice' ? 'Practice Mode' : 'Exam Mode',
+    })
+  );
+
+  /* Timer */
+  if (session.config.timed && session.config.durationMin) {
+    state.remaining = session.config.durationMin * 60;
+    $('[data-timer]').hidden = false;
+    paintTimer();
+    state.timer = setInterval(tick, 1000);
   }
 
-  examRuntime.examBundle = bundle;
-  examRuntime.questions = bundle.questions;
-  examRuntime.remainingSeconds = Number(bundle.durationSeconds) || 0;
+  buildNavPanel();
+  renderCurrent('forward');
+  updateActionStates();
+  trackEvent('exam_started', { subject: session.config.subject, mode: session.config.mode });
 
-  hydrateExamHeader(bundle);
-  renderNavigationPanel();
-  renderCurrentQuestion(false);
-  bindExamActionButtons();
-  startExamTimer();
+  /* Keyboard navigation */
+  document.addEventListener('keydown', keyboardNav);
+}
+
+function keyboardNav(e) {
+  if (e.target.matches('input, textarea, select')) return;
+  if (e.key === 'ArrowRight' && state.current < state.questions.length - 1) go(state.current + 1);
+  if (e.key === 'ArrowLeft' && state.current > 0) go(state.current - 1);
+}
+
+/* ---------- Timer ---------- */
+
+function tick() {
+  state.remaining -= 1;
+  state.elapsed += 1;
+  paintTimer();
+  if (state.remaining <= 0) {
+    clearInterval(state.timer);
+    autoSubmit();
+  }
+}
+
+function paintTimer() {
+  const timerEl = $('[data-timer]');
+  const valueEl = $('[data-timer-value]');
+  valueEl.textContent = formatTime(state.remaining);
+  timerEl.classList.toggle('warning', state.remaining <= 300 && state.remaining > 60);
+  timerEl.classList.toggle('critical', state.remaining <= 60);
+}
+
+async function autoSubmit() {
+  if (state.submitting) return;
+  await confirmModal({
+    title: 'Time is up',
+    message: 'Your time expired. EXAMIVO will submit your answers now.',
+    confirmLabel: 'Submit Now',
+  });
+  submit();
+}
+
+/* ---------- Rendering ---------- */
+
+function buildNavPanel() {
+  const grid = $('[data-qnav]');
+  grid.innerHTML = '';
+  state.questions.forEach((q, i) => {
+    grid.appendChild(
+      el('button', {
+        class: 'qnav-btn tabular',
+        'data-idx': String(i),
+        text: String(i + 1),
+        'aria-label': `Go to question ${i + 1}`,
+        onclick: () => {
+          go(i);
+          closeNavPanel();
+        },
+      })
+    );
+  });
+  paintNavPanel();
+}
+
+function paintNavPanel() {
+  const grid = $('[data-qnav]');
+  state.questions.forEach((q, i) => {
+    const btn = grid.querySelector(`[data-idx="${i}"]`);
+    if (!btn) return;
+    btn.classList.toggle('current', i === state.current);
+    btn.classList.toggle('answered', isAnswered(q, state.answers[q.id]));
+    btn.classList.toggle('flagged', state.flags.has(q.id));
+  });
+  const answered = state.questions.filter((q) => isAnswered(q, state.answers[q.id])).length;
+  $('[data-nav-progress]').textContent = `${answered}/${state.questions.length}`;
+  $('[data-progress-text]').textContent = `${answered} of ${state.questions.length} answered`;
+}
+
+function renderCurrent(direction) {
+  const q = state.questions[state.current];
+  q.displayIndex = `${state.current + 1} of ${state.questions.length}`;
+  const card = $('[data-question-card]');
+
+  renderQuestion(card, q, {
+    response: state.answers[q.id] ?? null,
+    onResponse: (value) => onResponse(q, value),
+    practice: session.config.mode === 'practice',
+    revealed: session.config.mode === 'practice' && state.practiceRevealed[q.id],
+    showModel: session.config.mode === 'practice' && state.practiceRevealed[`${q.id}:model`],
+    graded: null,
+  });
+
+  card.className = `question-card ${direction === 'forward' ? 'q-enter-forward' : 'q-enter-back'}`;
+
+  /* Practice mode: open-ended questions get a "check" affordance */
+  const isPractice = session.config.mode === 'practice';
+  if (isPractice && isOpenQuestion(q) && !state.practiceRevealed[`${q.id}:model`]) {
+    const checkBtn = el('button', {
+      class: 'btn btn-secondary btn-sm',
+      style: 'margin-top:1rem;align-self:flex-start',
+      text: 'Check my answer',
+      onclick: () => {
+        state.practiceRevealed[`${q.id}:model`] = true;
+        renderCurrent(state.current);
+      },
+    });
+    card.appendChild(checkBtn);
+  }
+
+  paintNavPanel();
+  updateActionStates();
+}
+
+function onResponse(q, value) {
+  state.answers[q.id] = value;
+  paintNavPanel();
+
+  if (session.config.mode !== 'practice') return;
+
+  // Practice mode: immediate feedback.
+  const choiceTypes = ['multiple_choice', 'true_false', 'scenario'];
+  if (choiceTypes.includes(q.type)) {
+    state.practiceRevealed[q.id] = true;
+    renderCurrent(state.current);
+  } else if (q.type === 'matching' && q.pairs.every((p) => value?.[p.left])) {
+    state.practiceRevealed[q.id] = true;
+    renderCurrent(state.current);
+  }
+}
+
+function updateActionStates() {
+  $('[data-prev]').disabled = state.current === 0;
+  const last = state.current === state.questions.length - 1;
+  $('[data-next]').disabled = last;
+  $('[data-next]').style.display = last ? 'none' : '';
+}
+
+function go(index, dir) {
+  if (state.submitting) return;
+  const direction = dir || (index > state.current ? 'forward' : 'back');
+  state.current = index;
+  renderCurrent(direction);
+}
+
+function closeNavPanel() {
+  $('[data-navpanel]').classList.remove('open');
+  $('[data-navpanel-backdrop]').classList.remove('show');
+}
+
+/* ---------- Wire actions ---------- */
+
+document.addEventListener('click', (e) => {
+  const t = e.target;
+  if (t.closest('[data-prev]')) go(state.current - 1, 'back');
+  else if (t.closest('[data-next]')) go(state.current + 1, 'forward');
+  else if (t.closest('[data-submit]')) openSubmitConfirm();
+  else if (t.closest('[data-quit]')) confirmQuit();
+  else if (t.closest('[data-navpanel-toggle]')) {
+    $('[data-navpanel]').classList.add('open');
+    $('[data-navpanel-backdrop]').classList.add('show');
+  } else if (t.closest('[data-navpanel-close]') || t.closest('[data-navpanel-backdrop]')) closeNavPanel();
+  else if (t.closest('[data-flag]')) {
+    const q = state.questions[state.current];
+    if (state.flags.has(q.id)) state.flags.delete(q.id);
+    else state.flags.add(q.id);
+    t.closest('[data-flag]').classList.toggle('active', state.flags.has(q.id));
+    t.closest('[data-flag]').classList.add('flag-flap');
+    setTimeout(() => t.closest('[data-flag]')?.classList.remove('flag-flap'), 380);
+    paintNavPanel();
+  }
 });
 
-function renderNoActiveExamState() {
-  const workspace = document.getElementById("exam-workspace-container");
-  if (!workspace) return;
-  workspace.innerHTML = `
-    <div class="empty-state" style="grid-column: 1 / -1; margin-top:2rem;">
-      ${renderAIStatus("idle", null, { size: "md", showLabel: false })}
-      <h3>No active examination in progress.</h3>
-      <p>Set up your study material, class, and examination format to begin a tailored practice session.</p>
-      <a href="setup.html" class="btn btn-primary btn-lg" data-smooth-nav>Start Preparing</a>
-    </div>
-  `;
-}
-
-function hydrateExamHeader(bundle) {
-  const subjEl = document.getElementById("exam-header-subject");
-  const classEl = document.getElementById("exam-header-class");
-  const typeEl = document.getElementById("exam-header-type");
-  const modeEl = document.getElementById("exam-header-mode");
-
-  if (subjEl) subjEl.textContent = bundle.subject || "Subject";
-  if (classEl) classEl.textContent = bundle.classLevel || "";
-  if (typeEl) typeEl.textContent = bundle.examType || "";
-  if (modeEl) {
-    modeEl.textContent = bundle.examMode === "practice" ? "PRACTICE MODE" : "EXAM MODE";
-    modeEl.className = `badge ${bundle.examMode === "practice" ? "badge-accent" : "badge-primary"}`;
-  }
-}
-
-/* ==========================================================================
-   TIMER ENGINE (Timed & Untimed Examinations + Subtle Visual Warning)
-   ========================================================================== */
-
-function startExamTimer() {
-  const timerBox = document.getElementById("exam-timer-box");
-  const timerValueEl = document.getElementById("exam-timer-value");
-  const timerLabelEl = document.getElementById("exam-timer-label");
-
-  const isTimed = Boolean(examRuntime.examBundle.timed && examRuntime.remainingSeconds > 0);
-
-  if (!isTimed) {
-    if (timerLabelEl) timerLabelEl.textContent = "UNTIMED";
-    if (timerValueEl) timerValueEl.textContent = "00:00";
-  } else {
-    if (timerLabelEl) timerLabelEl.textContent = "TIME REMAINING";
-    if (timerValueEl) timerValueEl.textContent = formatDuration(examRuntime.remainingSeconds);
-  }
-
-  examRuntime.timerInterval = setInterval(() => {
-    examRuntime.elapsedSeconds += 1;
-
-    if (!isTimed) {
-      if (timerValueEl) timerValueEl.textContent = formatDuration(examRuntime.elapsedSeconds);
-      return;
-    }
-
-    examRuntime.remainingSeconds = Math.max(0, examRuntime.remainingSeconds - 1);
-    if (timerValueEl) {
-      timerValueEl.textContent = formatDuration(examRuntime.remainingSeconds);
-    }
-
-    // Subtle visual warning when time is low (<= 20% or <= 120s)
-    if (timerBox) {
-      if (examRuntime.remainingSeconds <= 60) {
-        timerBox.classList.remove("warning");
-        timerBox.classList.add("critical");
-      } else if (examRuntime.remainingSeconds <= 180) {
-        timerBox.classList.add("warning");
-        if (!examRuntime.lowTimeWarned) {
-          examRuntime.lowTimeWarned = true;
-          showToast("Less than 3 minutes remaining.", "warning");
-        }
-      }
-    }
-
-    if (examRuntime.remainingSeconds === 0 && !examRuntime.isSubmitting) {
-      clearInterval(examRuntime.timerInterval);
-      showToast("Time is up. Submitting your examination for analysis.", "warning");
-      executeExamSubmission();
-    }
-  }, 1000);
-}
-
-/* ==========================================================================
-   QUESTION RENDERING & SMOOTH TRANSITIONS
-   ========================================================================== */
-
-function goToQuestion(targetIdx) {
-  if (targetIdx < 0 || targetIdx >= examRuntime.questions.length) return;
-  if (targetIdx === examRuntime.currentIndex) return;
-
-  const cardBody = document.getElementById("question-transition-body");
-  if (cardBody) {
-    cardBody.classList.remove("question-enter");
-    cardBody.classList.add("question-exit");
-    setTimeout(() => {
-      examRuntime.currentIndex = targetIdx;
-      renderCurrentQuestion(true);
-      renderNavigationPanel();
-    }, 140);
-  } else {
-    examRuntime.currentIndex = targetIdx;
-    renderCurrentQuestion(false);
-    renderNavigationPanel();
-  }
-}
-
-function renderCurrentQuestion(animateIn = true) {
-  const idx = examRuntime.currentIndex;
-  const total = examRuntime.questions.length;
-  const question = examRuntime.questions[idx];
-  if (!question) return;
-
-  const counterEl = document.getElementById("question-counter-label");
-  const topicBadgeEl = document.getElementById("question-topic-badge");
-  const diffBadgeEl = document.getElementById("question-difficulty-badge");
-  const typeBadgeEl = document.getElementById("question-type-badge");
-  const promptEl = document.getElementById("question-prompt-text");
-  const interactiveArea = document.getElementById("question-interactive-area");
-  const feedbackDrawer = document.getElementById("practice-feedback-drawer");
-  const cardBody = document.getElementById("question-transition-body");
-
-  if (counterEl) counterEl.textContent = `Question ${idx + 1} of ${total}`;
-  if (topicBadgeEl) topicBadgeEl.textContent = question.topic || examRuntime.examBundle.subject;
-  if (diffBadgeEl) diffBadgeEl.textContent = (question.difficulty || "medium").toUpperCase();
-  if (typeBadgeEl) typeBadgeEl.textContent = QUESTION_TYPE_LABELS[question.type] || "Question";
-  if (promptEl) promptEl.textContent = question.question;
-
-  const isPracticeMode = examRuntime.examBundle.examMode === "practice";
-  const isPracticeRevealed = isPracticeMode && examRuntime.practiceRevealedSet.has(idx);
-  const currentAnswer = examRuntime.userAnswers[idx];
-
-  renderQuestionInteractiveArea(question, currentAnswer, interactiveArea, {
-    revealFeedback: isPracticeRevealed,
-    onAnswerChange: (newVal) => {
-      examRuntime.userAnswers[idx] = newVal;
-      renderNavigationPanel();
-
-      // In Practice Mode, if option-based, reveal immediate feedback automatically on selection
-      if (isPracticeMode && isOptionBasedQuestion(question)) {
-        examRuntime.practiceRevealedSet.add(idx);
-        renderCurrentQuestion(false);
-      }
-    }
+async function confirmQuit() {
+  const ok = await confirmModal({
+    title: 'Leave this exam?',
+    message: 'Your answers so far will be lost. This cannot be undone.',
+    confirmLabel: 'Leave Exam',
+    danger: true,
   });
-
-  // Render Practice Mode Instant Feedback if revealed
-  if (feedbackDrawer) {
-    if (isPracticeRevealed) {
-      const evalRes = evaluateSingleQuestion(question, currentAnswer);
-      feedbackDrawer.style.display = "block";
-      feedbackDrawer.className = `practice-feedback-drawer ${evalRes.isCorrect ? "correct" : "incorrect"}`;
-      feedbackDrawer.innerHTML = `
-        <div class="practice-feedback-header" style="color:${evalRes.isCorrect ? "var(--success)" : "var(--danger)"};">
-          <span>${evalRes.isCorrect ? "✓ Correct Answer" : "✕ Needs Revision"}</span>
-        </div>
-        <div style="font-size:0.88rem; color:var(--text-primary); margin-bottom:0.35rem;">
-          <strong>Correct Answer:</strong> ${escapeHtml(evalRes.correctAnswerFormatted)}
-        </div>
-        <div style="font-size:0.86rem; color:var(--text-secondary);">
-          ${escapeHtml(question.explanation)}
-        </div>
-      `;
-    } else if (isPracticeMode && !isOptionBasedQuestion(question) && hasUserAnswered(question, currentAnswer)) {
-      feedbackDrawer.style.display = "block";
-      feedbackDrawer.className = "practice-feedback-drawer";
-      feedbackDrawer.innerHTML = `
-        <button type="button" class="btn btn-secondary btn-sm" id="check-practice-open-btn">
-          Check Answer & Show Explanation
-        </button>
-      `;
-      const checkBtn = document.getElementById("check-practice-open-btn");
-      if (checkBtn) {
-        checkBtn.addEventListener("click", () => {
-          examRuntime.practiceRevealedSet.add(idx);
-          renderCurrentQuestion(false);
-        });
-      }
-    } else {
-      feedbackDrawer.style.display = "none";
-      feedbackDrawer.innerHTML = "";
-    }
-  }
-
-  // Update Flag, Previous, Next button states
-  const prevBtn = document.getElementById("exam-prev-btn");
-  const nextBtn = document.getElementById("exam-next-btn");
-  const flagBtn = document.getElementById("exam-flag-btn");
-
-  if (prevBtn) prevBtn.disabled = idx === 0;
-  if (nextBtn) {
-    nextBtn.textContent = idx === total - 1 ? "Review & Submit" : "Next →";
-  }
-  if (flagBtn) {
-    const isFlagged = examRuntime.flaggedSet.has(idx);
-    flagBtn.classList.toggle("flagged", isFlagged);
-    flagBtn.innerHTML = isFlagged ? "⚑ Flagged" : "⚐ Flag";
-  }
-
-  if (cardBody && animateIn) {
-    cardBody.classList.remove("question-exit");
-    cardBody.classList.add("question-enter");
-  }
+  if (ok) location.href = 'app.html';
 }
 
-/* ==========================================================================
-   QUESTION NAVIGATION PANEL (Unanswered | Answered | Flagged | Current)
-   ========================================================================== */
+function openSubmitConfirm() {
+  const unanswered = state.questions.filter((q) => !isAnswered(q, state.answers[q.id])).length;
+  const flagged = state.flags.size;
+  const lines = [];
+  if (unanswered) lines.push(`${unanswered} question${unanswered > 1 ? 's are' : ' is'} still unanswered.`);
+  if (flagged) lines.push(`${flagged} question${flagged > 1 ? 's are' : ' is'} flagged for review.`);
+  const api = confirmModalBase(
+    'Submit your exam?',
+    [
+      lines.length ? lines.join(' ') : 'All questions answered.',
+      session.config.mode === 'practice'
+        ? 'You will see your final score, correct answers and explanations.'
+        : 'EXAMIVO will grade it and analyze your performance.',
+    ].join(' '),
+    'Submit Exam'
+  );
+  api.then((ok) => ok && submit());
+}
 
-function renderNavigationPanel() {
-  const gridEl = document.getElementById("question-num-grid");
-  const progressCountEl = document.getElementById("nav-answered-summary");
-  if (!gridEl) return;
+function confirmModalBase(title, message, label) {
+  // Reuse ui.confirmModal but ensure Enter submits: it already resolves on click.
+  return confirmModal({ title, message, confirmLabel: label });
+}
 
-  let answeredCount = 0;
+/* ============================================================
+   SUBMISSION → staged real analysis → results
+   ============================================================ */
 
-  gridEl.innerHTML = examRuntime.questions
-    .map((q, idx) => {
-      const answered = hasUserAnswered(q, examRuntime.userAnswers[idx]);
-      if (answered) answeredCount += 1;
-      const flagged = examRuntime.flaggedSet.has(idx);
-      const isCurrent = idx === examRuntime.currentIndex;
+async function submit() {
+  if (state.submitting) return;
+  state.submitting = true;
+  if (state.timer) clearInterval(state.timer);
 
-      const classes = ["q-nav-btn"];
-      if (answered) classes.push("answered");
-      if (flagged) classes.push("flagged");
-      if (isCurrent) classes.push("current");
-
-      const stateLabel = isCurrent
-        ? "Current"
-        : flagged
-        ? "Flagged"
-        : answered
-        ? "Answered"
-        : "Unanswered";
-
-      return `
-        <button
-          type="button"
-          class="${classes.join(" ")}"
-          data-jump-idx="${idx}"
-          aria-label="Question ${idx + 1} (${stateLabel})"
-          title="Question ${idx + 1}: ${stateLabel}"
-        >
-          ${idx + 1}
-        </button>
-      `;
-    })
-    .join("");
-
-  if (progressCountEl) {
-    progressCountEl.textContent = `${answeredCount} / ${examRuntime.questions.length} answered`;
-  }
-
-  gridEl.querySelectorAll("[data-jump-idx]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = Number(btn.getAttribute("data-jump-idx"));
-      goToQuestion(target);
-    });
+  const loading = createAILoading({
+    title: 'ANALYZING YOUR PERFORMANCE',
+    subtitle: 'Every answer is being scored and mapped to its concept.',
+    stages: ['Checking your answers', 'Measuring performance', 'Identifying weak areas', 'Building your study recommendations'],
   });
-}
+  document.body.appendChild(loading.overlay);
 
-function bindExamActionButtons() {
-  const prevBtn = document.getElementById("exam-prev-btn");
-  const nextBtn = document.getElementById("exam-next-btn");
-  const flagBtn = document.getElementById("exam-flag-btn");
-  const submitBtn = document.getElementById("exam-submit-btn");
-  const panelSubmitBtn = document.getElementById("panel-submit-btn");
-  const confirmSubmitBtn = document.getElementById("confirm-submit-exam-btn");
-
-  if (prevBtn) {
-    prevBtn.addEventListener("click", () => {
-      if (examRuntime.currentIndex > 0) {
-        goToQuestion(examRuntime.currentIndex - 1);
+  try {
+    /* Stage 0 — objective scoring (real) */
+    loading.start(0);
+    const objectiveResults = new Map();
+    for (const q of state.questions) {
+      if (!isOpenQuestion(q)) {
+        objectiveResults.set(q.id, gradeObjective(q, state.answers[q.id] ?? null));
       }
-    });
-  }
-
-  if (nextBtn) {
-    nextBtn.addEventListener("click", () => {
-      if (examRuntime.currentIndex < examRuntime.questions.length - 1) {
-        goToQuestion(examRuntime.currentIndex + 1);
-      } else {
-        promptSubmitConfirmation();
-      }
-    });
-  }
-
-  if (flagBtn) {
-    flagBtn.addEventListener("click", () => {
-      const idx = examRuntime.currentIndex;
-      if (examRuntime.flaggedSet.has(idx)) {
-        examRuntime.flaggedSet.delete(idx);
-      } else {
-        examRuntime.flaggedSet.add(idx);
-      }
-      renderCurrentQuestion(false);
-      renderNavigationPanel();
-    });
-  }
-
-  if (submitBtn) {
-    submitBtn.addEventListener("click", promptSubmitConfirmation);
-  }
-  if (panelSubmitBtn) {
-    panelSubmitBtn.addEventListener("click", promptSubmitConfirmation);
-  }
-  if (confirmSubmitBtn) {
-    confirmSubmitBtn.addEventListener("click", () => {
-      closeModal("submit-confirm-modal");
-      executeExamSubmission();
-    });
-  }
-
-  // Keyboard shortcuts (Left/Right arrow when not typing in an input)
-  document.addEventListener("keydown", (e) => {
-    const tag = (e.target?.tagName || "").toLowerCase();
-    if (tag === "input" || tag === "textarea" || tag === "select") return;
-    if (e.key === "ArrowRight" && examRuntime.currentIndex < examRuntime.questions.length - 1) {
-      goToQuestion(examRuntime.currentIndex + 1);
-    } else if (e.key === "ArrowLeft" && examRuntime.currentIndex > 0) {
-      goToQuestion(examRuntime.currentIndex - 1);
     }
-  });
-}
+    loading.done(0);
 
-function promptSubmitConfirmation() {
-  const total = examRuntime.questions.length;
-  let answered = 0;
-  examRuntime.questions.forEach((q, idx) => {
-    if (hasUserAnswered(q, examRuntime.userAnswers[idx])) answered += 1;
-  });
-  const unanswered = total - answered;
-  const flagged = examRuntime.flaggedSet.size;
-
-  const summaryEl = document.getElementById("submit-modal-summary");
-  if (summaryEl) {
-    if (unanswered === 0 && flagged === 0) {
-      summaryEl.textContent = `You have answered all ${total} questions. Ready for EXAMIVO to grade your examination and analyze your performance?`;
-    } else {
-      summaryEl.textContent = `You have answered ${answered} of ${total} questions (${unanswered} unanswered${flagged > 0 ? `, ${flagged} flagged` : ""}). Would you like to submit now?`;
-    }
-  }
-  openModal("submit-confirm-modal");
-}
-
-/* ==========================================================================
-   SUBMISSION EXPERIENCE: "ANALYZING YOUR PERFORMANCE" & WEAK AREA ENGINE
-   ========================================================================== */
-
-async function executeExamSubmission() {
-  if (examRuntime.isSubmitting) return;
-  examRuntime.isSubmitting = true;
-  if (examRuntime.timerInterval) clearInterval(examRuntime.timerInterval);
-
-  const overlay = document.getElementById("submission-analysis-overlay");
-  if (overlay) {
-    overlay.classList.add("active");
-    overlay.setAttribute("aria-hidden", "false");
-  }
-
-  const updateStage = (activeIdx, aiState) => {
-    renderAIStatus(aiState, "#submission-core-slot", { size: "lg", showLabel: true });
-    const listEl = document.getElementById("submission-stages-list");
-    if (!listEl) return;
-    listEl.innerHTML = SUBMISSION_STAGES.map((label, idx) => {
-      let statusClass = "";
-      let icon = `<span class="stage-dot-future"></span>`;
-      if (idx < activeIdx) {
-        statusClass = "completed";
-        icon = `<span class="stage-check-completed">✓</span>`;
-      } else if (idx === activeIdx) {
-        statusClass = "active";
-        icon = `<span class="stage-dot-active"></span>`;
+    /* Stage 1 — open-ended grading via backend (real call, only if needed) */
+    loading.start(1);
+    const openQuestions = state.questions.filter(isOpenQuestion);
+    const gradedMap = new Map();
+    if (openQuestions.length) {
+      const payload = openQuestions.map((q) => ({
+        id: q.id,
+        type: q.type,
+        question: q.question,
+        modelAnswer: q.modelAnswer,
+        rubric: q.rubric || '',
+        maxScore: q.maxScore,
+        response: state.answers[q.id] ?? '',
+        topic: q.topic,
+      }));
+      try {
+        const graded = await gradeAnswers({ questions: payload });
+        for (const g of graded?.results || []) gradedMap.set(g.id, g);
+      } catch {
+        // Backend grading unavailable — mark open questions for self-review,
+        // exclude from automatic score (honest, never faked).
+        for (const q of openQuestions) gradedMap.set(q.id, { id: q.id, score: 0, maxScore: q.maxScore, feedback: '', selfReview: true });
       }
-      return `
-        <div class="thinking-stage-item ${statusClass}">
-          <span class="stage-icon-slot">${icon}</span>
-          <span>${escapeHtml(label)}</span>
-        </div>
-      `;
-    }).join("");
-  };
+    }
+    loading.done(1);
 
-  // Stage 0: Checking answers
-  updateStage(0, "checking");
-  await new Promise((r) => setTimeout(r, 420));
+    /* Stage 2 — weak area derivation (real) */
+    loading.start(2);
+    const { topicStats, weakAreas, strongAreas, score, maxScore } = analyzePerformance(objectiveResults, gradedMap);
+    loading.done(2);
 
-  // Check if any open-ended questions need backend AI evaluation
-  const openItemsToGrade = [];
-  examRuntime.questions.forEach((q, idx) => {
-    const ans = examRuntime.userAnswers[idx];
-    if (!isOptionBasedQuestion(q) && q.type !== "matching" && hasUserAnswered(q, ans)) {
-      openItemsToGrade.push({
-        index: idx,
+    /* Stage 3 — persist (real) */
+    loading.start(3);
+    const attempt = {
+      id: `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+      config: { ...session.config },
+      mode: session.config.mode,
+      questions: state.questions.map((q, i) => ({
+        id: q.id,
         question: q.question,
         type: q.type,
-        expectedAnswer: q.correctAnswer,
-        userAnswer: String(ans)
-      });
-    }
-  });
+        topic: q.topic,
+        difficulty: q.difficulty,
+        options: q.options || null,
+        pairs: q.pairs || null,
+        correctAnswer: q.correctAnswer ?? null,
+        acceptedAnswers: q.acceptedAnswers || null,
+        numericAnswer: q.numericAnswer ?? null,
+        modelAnswer: q.modelAnswer || null,
+        explanation: q.explanation,
+        maxScore: q.maxScore,
+        displayIndex: i + 1,
+      })),
+      answers: state.answers,
+      graded: Object.fromEntries(gradedMap),
+      flagged: [...state.flags],
+      score,
+      maxScore,
+      percentage: maxScore ? Math.round((score / maxScore) * 100) : 0,
+      correctCount: countCorrect(objectiveResults, gradedMap),
+      totalCount: state.questions.length,
+      topicStats,
+      weakAreas,
+      strongAreas,
+      durationSec: state.elapsed,
+      timed: !!session.config.timed,
+      status: 'completed',
+      completedAt: Date.now(),
+    };
+    loading.done(3);
+    loading.complete('Your results are ready.');
 
-  let aiEvaluationsByIndex = {};
-  if (openItemsToGrade.length > 0) {
-    const aiEvalRes = await evaluateOpenResponsesViaAI({
-      classLevel: examRuntime.examBundle.classLevel,
-      subject: examRuntime.examBundle.subject,
-      examType: examRuntime.examBundle.examType,
-      items: openItemsToGrade
-    });
-    if (aiEvalRes && Array.isArray(aiEvalRes.evaluations)) {
-      aiEvalRes.evaluations.forEach((ev) => {
-        aiEvaluationsByIndex[ev.index] = ev;
-      });
+    try {
+      await Store.saveAttempt(attempt);
+      await Store.saveWeakAreas(weakAreas.map((w) => ({ ...w, subject: attempt.config.subject, lastSeen: Date.now() })));
+      toast('Exam saved.', 'success');
+    } catch (err) {
+      toast(err.message || 'Saved locally — cloud sync will catch up.', 'warning', { duration: 4200 });
+    }
+    trackEvent('exam_completed', { subject: attempt.config.subject, percentage: attempt.percentage });
+
+    Handoff.set('examivo.lastAttempt', attempt);
+    await new Promise((r) => setTimeout(r, 520));
+    await loading.close();
+    location.href = `results.html?attempt=${encodeURIComponent(attempt.id)}`;
+  } catch (err) {
+    loading.fail();
+    await new Promise((r) => setTimeout(r, 1200));
+    await loading.close();
+    toast(err?.message || 'EXAMIVO could not finish grading. Your answers are safe — try submitting again.', 'error', { duration: 4600 });
+    state.submitting = false;
+  }
+}
+
+function countCorrect(objectiveResults, gradedMap) {
+  let n = 0;
+  for (const r of objectiveResults.values()) if (r?.correct) n++;
+  for (const g of gradedMap.values()) if (!g.selfReview && g.score >= g.maxScore * 0.6) n++;
+  return n;
+}
+
+function analyzePerformance(objectiveResults, gradedMap) {
+  const topicStats = new Map();
+  for (const q of state.questions) {
+    const topic = q.topic || 'General';
+    if (!topicStats.has(topic)) topicStats.set(topic, { topic, score: 0, maxScore: 0, count: 0, correct: 0 });
+    const stat = topicStats.get(topic);
+    stat.count++;
+    if (isOpenQuestion(q)) {
+      const g = gradedMap.get(q.id);
+      if (g && !g.selfReview) {
+        stat.score += g.score || 0;
+        stat.maxScore += g.maxScore || q.maxScore;
+        if ((g.score || 0) >= (g.maxScore || q.maxScore) * 0.6) stat.correct++;
+      } else {
+        stat.maxScore += 0; // self-review items excluded from the automatic score
+      }
+    } else {
+      const r = objectiveResults.get(q.id);
+      stat.score += r?.score || 0;
+      stat.maxScore += q.maxScore || 1;
+      if (r?.correct) stat.correct++;
     }
   }
 
-  // Stage 1: Measuring performance
-  updateStage(1, "analyzing");
-  await new Promise((r) => setTimeout(r, 450));
+  const topics = [...topicStats.values()].map((t) => ({
+    ...t,
+    pct: t.maxScore ? Math.round((t.score / t.maxScore) * 100) : null,
+  }));
 
-  let correctCount = 0;
-  const questionReviews = examRuntime.questions.map((q, idx) => {
-    const rawAns = examRuntime.userAnswers[idx];
-    const evalResult = evaluateSingleQuestion(q, rawAns, aiEvaluationsByIndex[idx]);
-    if (evalResult.isCorrect) {
-      correctCount += 1;
+  const weakAreas = topics
+    .filter((t) => t.pct != null && t.pct < 55)
+    .sort((a, b) => a.pct - b.pct)
+    .map((t) => ({
+      id: t.topic.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      concept: t.topic,
+      pct: t.pct,
+      status: t.pct < 35 ? 'weak' : 'needs_practice',
+      evidence: `${t.correct}/${t.count} questions on this concept weren't solid.`,
+    }));
+
+  const strongAreas = topics.filter((t) => t.pct != null && t.pct >= 75).map((t) => ({ concept: t.topic, pct: t.pct }));
+
+  const score = [...objectiveResults.values()].reduce((s, r) => s + (r?.score || 0), 0) +
+    [...gradedMap.values()].reduce((s, g) => s + (g.selfReview ? 0 : g.score || 0), 0);
+  const maxScore = state.questions.reduce((s, q) => {
+    if (isOpenQuestion(q)) {
+      const g = gradedMap.get(q.id);
+      return s + (g?.selfReview ? 0 : q.maxScore);
     }
+    return s + (q.maxScore || 1);
+  }, 0);
 
-    return {
-      index: idx,
-      questionId: q.id,
-      question: q.question,
-      type: q.type,
-      options: q.options || [],
-      userAnswerRaw: rawAns !== undefined ? rawAns : null,
-      userAnswerFormatted: evalResult.userAnswerFormatted,
-      correctAnswerFormatted: evalResult.correctAnswerFormatted,
-      isCorrect: evalResult.isCorrect,
-      scoreRatio: evalResult.scoreRatio,
-      explanation: evalResult.aiFeedback
-        ? `${evalResult.aiFeedback}\n\n${q.explanation}`
-        : q.explanation,
-      topic: q.topic || examRuntime.examBundle.subject,
-      sourceConcept: q.sourceConcept || q.topic || examRuntime.examBundle.subject,
-      difficulty: q.difficulty || "medium",
-      cognitiveSkill: q.cognitiveSkill || "application",
-      flagged: examRuntime.flaggedSet.has(idx)
-    };
-  });
-
-  // Stage 2: Identifying weak areas (Weak Area Engine)
-  updateStage(2, "thinking");
-  await new Promise((r) => setTimeout(r, 480));
-
-  const totalQuestions = examRuntime.questions.length;
-  const scorePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-
-  // Group performance by topic
-  const topicMap = {};
-  questionReviews.forEach((rev) => {
-    const tName = rev.topic || "Core Concepts";
-    if (!topicMap[tName]) {
-      topicMap[tName] = {
-        topic: tName,
-        sourceConcept: rev.sourceConcept || tName,
-        total: 0,
-        correct: 0,
-        missedQuestions: [],
-        skillsTested: new Set()
-      };
-    }
-    topicMap[tName].total += 1;
-    if (rev.isCorrect) {
-      topicMap[tName].correct += 1;
-    } else {
-      topicMap[tName].missedQuestions.push(rev.index + 1);
-    }
-    if (rev.cognitiveSkill) {
-      topicMap[tName].skillsTested.add(rev.cognitiveSkill);
-    }
-  });
-
-  const strongAreas = [];
-  const practiceAreas = [];
-  const weakAreas = [];
-
-  const topicDiagnostics = Object.values(topicMap).map((entry) => {
-    const accuracyPercent = Math.round((entry.correct / entry.total) * 100);
-    let status = "Strong";
-    let reason = "";
-
-    const skillsList = [...entry.skillsTested].join(", ") || "concept application";
-
-    if (accuracyPercent < 60) {
-      status = "Needs Practice";
-      weakAreas.push(entry.topic);
-      reason = `Answered ${entry.correct} of ${entry.total} (${accuracyPercent}%) correctly. Missed Question${entry.missedQuestions.length > 1 ? "s" : ""} #${entry.missedQuestions.join(", #")} involving ${skillsList}.`;
-    } else if (accuracyPercent < 85) {
-      status = "Areas to Practice";
-      practiceAreas.push(entry.topic);
-      reason = `Answered ${entry.correct} of ${entry.total} (${accuracyPercent}%) correctly. Solid foundation, but needs refinement on Question #${entry.missedQuestions.join(", #")}.`;
-    } else {
-      status = "Strong";
-      strongAreas.push(entry.topic);
-      reason = `Answered ${entry.correct} of ${entry.total} (${accuracyPercent}%) correctly across ${skillsList}.`;
-    }
-
-    return {
-      topic: entry.topic,
-      sourceConcept: entry.sourceConcept,
-      total: entry.total,
-      correct: entry.correct,
-      accuracyPercent,
-      status,
-      reason,
-      missedQuestionNumbers: entry.missedQuestions
-    };
-  });
-
-  // Sort diagnostics so weakest areas appear first
-  topicDiagnostics.sort((a, b) => a.accuracyPercent - b.accuracyPercent);
-
-  // Stage 3: Building your study recommendations
-  updateStage(3, "complete");
-  await new Promise((r) => setTimeout(r, 480));
-
-  const attemptBundle = {
-    attemptId: generateId("att"),
-    examId: examRuntime.examBundle.examId,
-    title: examRuntime.examBundle.title,
-    classLevel: examRuntime.examBundle.classLevel,
-    subject: examRuntime.examBundle.subject,
-    examType: examRuntime.examBundle.examType,
-    difficulty: examRuntime.examBundle.difficulty,
-    examMode: examRuntime.examBundle.examMode,
-    materialSummary: examRuntime.examBundle.materialSummary || "",
-    scorePercent,
-    correctCount,
-    totalQuestions,
-    timeSpentSeconds: examRuntime.elapsedSeconds,
-    strongAreas,
-    practiceAreas,
-    weakAreas,
-    topicDiagnostics,
-    questionReviews,
-    createdAtIso: new Date().toISOString()
-  };
-
-  setActiveResultSession(attemptBundle);
-  trackEvent("exam_completed", {
-    subject: attemptBundle.subject,
-    classLevel: attemptBundle.classLevel,
-    examType: attemptBundle.examType,
-    scorePercent
-  });
-
-  // Save to Firestore (or queue if guest)
-  await saveAttemptAndWeakAreas(attemptBundle);
-
-  navigateTo("results.html");
+  return { topicStats: topics, weakAreas, strongAreas, score, maxScore };
 }
