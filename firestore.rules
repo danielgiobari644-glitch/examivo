@@ -1,41 +1,101 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profile and private user data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /exams/{examId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /attempts/{attemptId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /weakAreas/{areaId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      match /studySessions/{sessionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
+
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // Public curriculum & exam standard reference profiles (read-only for authenticated and public)
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isResourceOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    function isCreatingOwnResource() {
+      return isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Users collection: private account record
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Profiles collection: student academic preferences & aggregate progress
+    match /profiles/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Exams collection: generated examination blueprints & metadata
+    match /exams/{examId} {
+      allow read: if isResourceOwner();
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isResourceOwner();
+    }
+
+    // Questions collection: validated questions tied to a user's exam
+    match /questions/{questionId} {
+      allow read: if isResourceOwner();
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isResourceOwner();
+    }
+
+    // Attempts collection: completed exam submissions, scores & question breakdowns
+    match /attempts/{attemptId} {
+      allow read: if isResourceOwner();
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isResourceOwner();
+    }
+
+    // StudySessions collection: targeted mistake revision & study sessions
+    match /studySessions/{sessionId} {
+      allow read: if isResourceOwner();
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isResourceOwner();
+    }
+
+    // WeakAreas collection: concept-level mastery & weakness tracking
+    match /weakAreas/{weakAreaId} {
+      allow read: if isResourceOwner();
+      allow create: if isCreatingOwnResource();
+      allow update: if isResourceOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isResourceOwner();
+    }
+
+    // System reference collections: readable by clients, writable only by authorized admins
     match /examProfiles/{profileId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
-    
-    match /classProfiles/{classId} {
-      allow read: if true;
-      allow write: if false;
-    }
-    
+
     match /subjects/{subjectId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
+    }
+
+    match /classProfiles/{classId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

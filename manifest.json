@@ -1,20 +1,48 @@
 {
-  "id": "/",
-  "name": "EXAMIVO - AI Exam Preparation",
+  "name": "EXAMIVO — AI Exam Preparation Platform",
   "short_name": "EXAMIVO",
-  "description": "Transform study material into targeted examination practice with adaptive AI.",
-  "start_url": "/app.html",
-  "scope": "/",
+  "description": "Prepare for the exam, not just the subject. Your study material. Your exam. Your AI preparation.",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#080c14",
-  "theme_color": "#4f46e5",
+  "orientation": "portrait-primary",
+  "background_color": "#080A0F",
+  "theme_color": "#080A0F",
+  "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["education", "productivity"]
+  "shortcuts": [
+    {
+      "name": "Start New Practice",
+      "short_name": "New Practice",
+      "description": "Set up a new AI-powered examination from your study material",
+      "url": "./setup.html",
+      "icons": [{ "src": "icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your progress, weak areas, and recent exams",
+      "url": "./app.html",
+      "icons": [{ "src": "icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
 }

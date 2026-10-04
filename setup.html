@@ -3,794 +3,378 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Setup Practice Exam - EXAMIVO</title>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  <link rel="stylesheet" href="/style.css" />
+  <meta name="theme-color" content="#080A0F" />
+  <meta name="description" content="Set up your tailored AI examination practice on EXAMIVO." />
+  <title>Guided Exam Setup — EXAMIVO</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="global.css" />
+  <link rel="stylesheet" href="animations.css" />
+  <link rel="stylesheet" href="setup.css" />
 </head>
-<body>
-  <!-- Navigation -->
-  <header class="site-nav">
+<body data-page="setup">
+  <!-- Top Navigation -->
+  <header class="top-nav">
     <div class="nav-inner">
-      <a href="/index.html" class="brand-link">
-        <div class="brand-mark">
-          <img src="/icon.svg" alt="EXAMIVO Logo" />
-        </div>
-        <span class="brand-text">EXAMIVO</span>
+      <a href="index.html" class="brand-link" data-smooth-nav>
+        <span class="brand-core-mini" aria-hidden="true"></span>
+        <span>EXAMIVO</span>
       </a>
 
-      <ul class="nav-links">
-        <li><a href="/app.html" class="nav-link">Dashboard</a></li>
-        <li><a href="/setup.html" class="nav-link active">New Practice</a></li>
-        <li><a href="/history.html" class="nav-link">History</a></li>
-      </ul>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
+        <a href="setup.html" class="nav-link active">New Practice</a>
+        <a href="history.html" class="nav-link" data-smooth-nav>History</a>
+      </nav>
 
       <div class="nav-actions">
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-          </svg>
-        </button>
-        <button id="openAuthBtn" class="btn btn-secondary btn-sm nav-btn-desktop">Sign In</button>
-        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
-          </svg>
-        </button>
+        <span class="net-pill hidden" role="status">Offline</span>
+
+        <div class="theme-switcher" role="group" aria-label="Color theme">
+          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </button>
+        </div>
+
+        <div id="nav-auth-slot"></div>
       </div>
     </div>
   </header>
 
-  <main class="page-wrapper" style="padding: 2rem 1.5rem 5rem;">
-    <div class="setup-step-container">
-      <!-- Step Indicator Bar -->
-      <div class="step-indicator-bar" id="stepIndicatorBar">
-        <div class="step-node active" id="node1">1</div>
-        <div class="step-node" id="node2">2</div>
-        <div class="step-node" id="node3">3</div>
-        <div class="step-node" id="node4">4</div>
-        <div class="step-node" id="node5">5</div>
-      </div>
+  <main class="page-shell">
+    <div class="container-narrow setup-main">
+      <!-- Progressive Breadcrumb Bar -->
+      <nav class="setup-progress-bar" aria-label="Setup steps">
+        <button type="button" class="setup-step-indicator active" data-step-nav="1">
+          <span class="step-num-circle">1</span>
+          <span>Class Level</span>
+        </button>
+        <button type="button" class="setup-step-indicator" data-step-nav="2">
+          <span class="step-num-circle">2</span>
+          <span>Subject</span>
+        </button>
+        <button type="button" class="setup-step-indicator" data-step-nav="3">
+          <span class="step-num-circle">3</span>
+          <span>Examination</span>
+        </button>
+        <button type="button" class="setup-step-indicator" data-step-nav="4">
+          <span class="step-num-circle">4</span>
+          <span>Study Material</span>
+        </button>
+        <button type="button" class="setup-step-indicator" data-step-nav="5" disabled>
+          <span class="step-num-circle">5</span>
+          <span>Exam Focus</span>
+        </button>
+      </nav>
 
-      <!-- STEP 1: Academic Level -->
-      <div id="stepCard1" class="step-card-box">
-        <h2 class="step-question-title">What are you preparing for?</h2>
-        <p class="step-question-desc">EXAMIVO adjusts vocabulary, conceptual depth, and question complexity according to your exact academic stage.</p>
+      <!-- Active Selection Chips -->
+      <div class="selection-summary-strip" id="selection-summary-strip"></div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; text-transform:uppercase;">Primary Education</div>
-        <div class="options-grid" style="margin-bottom:1.5rem;">
-          <div class="option-tile" data-val="Primary 1"><div class="option-tile-title">Primary 1</div></div>
-          <div class="option-tile" data-val="Primary 2"><div class="option-tile-title">Primary 2</div></div>
-          <div class="option-tile" data-val="Primary 3"><div class="option-tile-title">Primary 3</div></div>
-          <div class="option-tile" data-val="Primary 4"><div class="option-tile-title">Primary 4</div></div>
-          <div class="option-tile" data-val="Primary 5"><div class="option-tile-title">Primary 5</div></div>
-          <div class="option-tile" data-val="Primary 6"><div class="option-tile-title">Primary 6</div></div>
+      <!-- Error Region if needed -->
+      <div id="setup-error-region" style="display:none;"></div>
+
+      <!-- STEP 1: WHAT ARE YOU PREPARING FOR? -->
+      <section class="wizard-step active" data-step="1" aria-labelledby="step1-title">
+        <div class="wizard-header">
+          <div class="wizard-eyebrow">Step 1 of 4 · Class Profile</div>
+          <h1 class="wizard-title" id="step1-title">What are you preparing for?</h1>
+          <p class="wizard-subtitle">
+            EXAMIVO adapts vocabulary, question reasoning, and explanations to your exact academic level.
+          </p>
         </div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; text-transform:uppercase;">Junior Secondary</div>
-        <div class="options-grid" style="margin-bottom:1.5rem;">
-          <div class="option-tile" data-val="JSS1"><div class="option-tile-title">JSS 1</div><div class="option-tile-sub">Grade 7</div></div>
-          <div class="option-tile" data-val="JSS2"><div class="option-tile-title">JSS 2</div><div class="option-tile-sub">Grade 8</div></div>
-          <div class="option-tile" data-val="JSS3"><div class="option-tile-title">JSS 3</div><div class="option-tile-sub">Grade 9 / BECE</div></div>
+        <div id="class-groups-container"></div>
+      </section>
+
+      <!-- STEP 2: WHAT SUBJECT? -->
+      <section class="wizard-step" data-step="2" aria-labelledby="step2-title">
+        <div class="wizard-header">
+          <div class="wizard-eyebrow">Step 2 of 4 · Academic Subject</div>
+          <h1 class="wizard-title" id="step2-title">What subject?</h1>
+          <p class="wizard-subtitle">
+            Select the subject you are studying, or choose "Other" for a custom course or university module.
+          </p>
         </div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; text-transform:uppercase;">Senior Secondary</div>
-        <div class="options-grid" style="margin-bottom:1.5rem;">
-          <div class="option-tile" data-val="SS1"><div class="option-tile-title">SS 1</div><div class="option-tile-sub">Grade 10</div></div>
-          <div class="option-tile" data-val="SS2"><div class="option-tile-title">SS 2</div><div class="option-tile-sub">Grade 11</div></div>
-          <div class="option-tile selected" data-val="SS3"><div class="option-tile-title">SS 3</div><div class="option-tile-sub">Grade 12 / WAEC / JAMB</div></div>
-        </div>
+        <div class="selection-grid-lg" id="subjects-grid-container"></div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem; text-transform:uppercase;">Higher Education & Other</div>
-        <div class="options-grid">
-          <div class="option-tile" data-val="University"><div class="option-tile-title">University</div><div class="option-tile-sub">Undergraduate</div></div>
-          <div class="option-tile" data-val="Other"><div class="option-tile-title">Other</div><div class="option-tile-sub">General / Adult</div></div>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; margin-top:2rem;">
-          <button class="btn btn-primary" onclick="nextStep(2)">Continue to Subject &rarr;</button>
-        </div>
-      </div>
-
-      <!-- STEP 2: Subject -->
-      <div id="stepCard2" class="step-card-box hidden">
-        <h2 class="step-question-title">What subject?</h2>
-        <p class="step-question-desc">Select the academic discipline to calibrate standard syllabus coverage and question structures.</p>
-
-        <div class="options-grid" id="subjectsGrid">
-          <div class="option-tile selected" data-val="Mathematics"><div class="option-tile-title">Mathematics</div></div>
-          <div class="option-tile" data-val="English Language"><div class="option-tile-title">English Language</div></div>
-          <div class="option-tile" data-val="Biology"><div class="option-tile-title">Biology</div></div>
-          <div class="option-tile" data-val="Chemistry"><div class="option-tile-title">Chemistry</div></div>
-          <div class="option-tile" data-val="Physics"><div class="option-tile-title">Physics</div></div>
-          <div class="option-tile" data-val="Basic Science"><div class="option-tile-title">Basic Science</div></div>
-          <div class="option-tile" data-val="Basic Technology"><div class="option-tile-title">Basic Technology</div></div>
-          <div class="option-tile" data-val="Economics"><div class="option-tile-title">Economics</div></div>
-          <div class="option-tile" data-val="Government"><div class="option-tile-title">Government</div></div>
-          <div class="option-tile" data-val="Civic Education"><div class="option-tile-title">Civic Education</div></div>
-          <div class="option-tile" data-val="Geography"><div class="option-tile-title">Geography</div></div>
-          <div class="option-tile" data-val="Literature"><div class="option-tile-title">Literature</div></div>
-          <div class="option-tile" data-val="Agricultural Science"><div class="option-tile-title">Agricultural Science</div></div>
-          <div class="option-tile" data-val="Computer Science"><div class="option-tile-title">Computer Science</div></div>
-          <div class="option-tile" data-val="CRS"><div class="option-tile-title">Christian Rel. Studies</div></div>
-          <div class="option-tile" data-val="IRS"><div class="option-tile-title">Islamic Rel. Studies</div></div>
-          <div class="option-tile" data-val="Accounting"><div class="option-tile-title">Accounting</div></div>
-          <div class="option-tile" data-val="Commerce"><div class="option-tile-title">Commerce</div></div>
-          <div class="option-tile" data-val="Further Mathematics"><div class="option-tile-title">Further Mathematics</div></div>
-          <div class="option-tile" data-val="Other"><div class="option-tile-title">Other Subject</div></div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; margin-top:2rem;">
-          <button class="btn btn-secondary" onclick="prevStep(1)">&larr; Back</button>
-          <button class="btn btn-primary" onclick="nextStep(3)">Continue to Exam Type &rarr;</button>
-        </div>
-      </div>
-
-      <!-- STEP 3: Exam & Assessment Type -->
-      <div id="stepCard3" class="step-card-box hidden">
-        <h2 class="step-question-title">What assessment or examination?</h2>
-        <p class="step-question-desc">Select your exact test format — from continuous classroom assessments to national board exams.</p>
-
-        <div style="font-weight:700; font-size:0.85rem; color:var(--accent-cyan); margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
-          Classroom & Continuous Assessments
-        </div>
-        <div class="options-grid" style="margin-bottom:1.5rem;">
-          <div class="option-tile" data-val="Continuous Assessment 1 (CA 1)">
-            <div class="option-tile-title">C.A. Test 1</div>
-            <div class="option-tile-sub">First Continuous Assessment</div>
-          </div>
-          <div class="option-tile" data-val="Continuous Assessment 2 (CA 2)">
-            <div class="option-tile-title">C.A. Test 2</div>
-            <div class="option-tile-sub">Second Continuous Assessment</div>
-          </div>
-          <div class="option-tile" data-val="Continuous Assessment 3 (CA 3)">
-            <div class="option-tile-title">C.A. Test 3</div>
-            <div class="option-tile-sub">Third Assessment / CAT 3</div>
-          </div>
-          <div class="option-tile" data-val="Mid-Term Examination">
-            <div class="option-tile-title">Mid-Term Exam</div>
-            <div class="option-tile-sub">Half-Term Assessment</div>
-          </div>
-          <div class="option-tile" data-val="Weekly Concept Quiz">
-            <div class="option-tile-title">Weekly Quiz</div>
-            <div class="option-tile-sub">Diagnostic Topic Check</div>
-          </div>
-          <div class="option-tile" data-val="End-of-Term Examination">
-            <div class="option-tile-title">End-of-Term Exam</div>
-            <div class="option-tile-sub">Full Term Evaluation</div>
-          </div>
-          <div class="option-tile" data-val="School Promotion Exam">
-            <div class="option-tile-title">Promotion Exam</div>
-            <div class="option-tile-sub">Annual Grade Advancement</div>
-          </div>
-          <div class="option-tile" data-val="Classroom Pop Quiz">
-            <div class="option-tile-title">Pop Quiz</div>
-            <div class="option-tile-sub">Rapid Concept Recall Drill</div>
+        <div id="custom-subject-wrap" style="display:none; margin-top:1.5rem;" class="card">
+          <div class="form-group">
+            <label class="form-label" for="custom-subject-input">Custom Subject or Course Title</label>
+            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+              <input type="text" id="custom-subject-input" class="form-input" placeholder="e.g. Organic Chemistry II, Constitutional Law, Data Structures" style="flex:1;" />
+              <button type="button" class="btn btn-primary" id="custom-subject-continue-btn">Continue →</button>
+            </div>
           </div>
         </div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--primary-light); margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
-          Standardized & Board Examinations
+        <div class="wizard-footer-nav">
+          <button type="button" class="btn btn-secondary" data-prev-step="1">← Back to Class</button>
         </div>
-        <div class="options-grid" style="margin-bottom:1.5rem;">
-          <div class="option-tile selected" data-val="WAEC">
-            <div class="option-tile-title">WAEC (WASSCE)</div>
-            <div class="option-tile-sub">Senior Secondary Certificate</div>
-          </div>
-          <div class="option-tile" data-val="NECO">
-            <div class="option-tile-title">NECO (SSCE)</div>
-            <div class="option-tile-sub">National Senior Certificate</div>
-          </div>
-          <div class="option-tile" data-val="JAMB / UTME">
-            <div class="option-tile-title">JAMB / UTME</div>
-            <div class="option-tile-sub">Tertiary Matriculation Exam</div>
-          </div>
-          <div class="option-tile" data-val="Common Entrance">
-            <div class="option-tile-title">Common Entrance</div>
-            <div class="option-tile-sub">Primary to Secondary (NCEE)</div>
-          </div>
-          <div class="option-tile" data-val="BECE / JSCE">
-            <div class="option-tile-title">BECE / JSCE</div>
-            <div class="option-tile-sub">Junior Secondary Certificate</div>
-          </div>
-          <div class="option-tile" data-val="Mock Examination">
-            <div class="option-tile-title">Mock Examination</div>
-            <div class="option-tile-sub">Standard Practice Trial</div>
-          </div>
-          <div class="option-tile" data-val="Cambridge IGCSE">
-            <div class="option-tile-title">Cambridge IGCSE</div>
-            <div class="option-tile-sub">International General Certificate</div>
-          </div>
-          <div class="option-tile" data-val="SAT / ACT">
-            <div class="option-tile-title">SAT / ACT</div>
-            <div class="option-tile-sub">Standardized College Test</div>
-          </div>
+      </section>
+
+      <!-- STEP 3: WHAT EXAMINATION? -->
+      <section class="wizard-step" data-step="3" aria-labelledby="step3-title">
+        <div class="wizard-header">
+          <div class="wizard-eyebrow">Step 3 of 4 · Examination Format &amp; Rigor</div>
+          <h1 class="wizard-title" id="step3-title">What examination?</h1>
+          <p class="wizard-subtitle">
+            Your selected examination determines question patterns, cognitive rigor, and marking style.
+          </p>
         </div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--accent-purple); margin-bottom:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">
-          University & Custom Assessment
-        </div>
-        <div class="options-grid">
-          <div class="option-tile" data-val="University In-Course Test">
-            <div class="option-tile-title">In-Course Test</div>
-            <div class="option-tile-sub">University Continuous Assessment</div>
-          </div>
-          <div class="option-tile" data-val="University Mid-Semester Test">
-            <div class="option-tile-title">Mid-Semester Test</div>
-            <div class="option-tile-sub">Degree Course Half-Way Review</div>
-          </div>
-          <div class="option-tile" data-val="University Semester Examination">
-            <div class="option-tile-title">Semester Exam</div>
-            <div class="option-tile-sub">University Degree Course Final</div>
-          </div>
-          <div class="option-tile" data-val="Custom Assessment">
-            <div class="option-tile-title">Custom Test</div>
-            <div class="option-tile-sub">Teacher or Self-Paced Exam</div>
-          </div>
-        </div>
+        <div class="selection-grid-lg" id="exam-types-grid"></div>
 
-        <div style="display:flex; justify-content:space-between; margin-top:2rem;">
-          <button class="btn btn-secondary" onclick="prevStep(2)">&larr; Back</button>
-          <button class="btn btn-primary" onclick="nextStep(4)">Continue to Material &rarr;</button>
-        </div>
-      </div>
+        <!-- Examination Configuration Panel -->
+        <div class="exam-config-panel">
+          <!-- Question Count -->
+          <div class="form-group">
+            <label class="form-label">Question Count</label>
+            <div class="pill-selector-group">
+              <button type="button" class="pill-option" data-q-count="5">5</button>
+              <button type="button" class="pill-option selected" data-q-count="10">10</button>
+              <button type="button" class="pill-option" data-q-count="15">15</button>
+              <button type="button" class="pill-option" data-q-count="20">20</button>
+              <button type="button" class="pill-option" data-q-count="30">30</button>
+            </div>
+          </div>
 
-      <!-- STEP 4: Material Input -->
-      <div id="stepCard4" class="step-card-box hidden">
-        <h2 class="step-question-title">Give EXAMIVO something to work with.</h2>
-        <p class="step-question-desc">Upload study files, photographs of handwritten notes or diagrams, paste text, or simply name a topic.</p>
+          <!-- Difficulty -->
+          <div class="form-group">
+            <label class="form-label">Difficulty Calibration</label>
+            <div class="pill-selector-group" id="difficulty-pills-container"></div>
+          </div>
 
-        <!-- Material Tabs with SVG Icons -->
-        <div class="material-tabs">
-          <div class="material-tab-btn active" data-tab="upload-doc">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
-            <span>Document</span>
-          </div>
-          <div class="material-tab-btn" data-tab="upload-img">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/></svg>
-            <span>Photo / Notes</span>
-          </div>
-          <div class="material-tab-btn" data-tab="paste-text">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
-            <span>Paste Text</span>
-          </div>
-          <div class="material-tab-btn" data-tab="enter-topic">
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.516 0c.85.493 1.509 1.333 1.509 2.316V18"/></svg>
-            <span>Topic Name</span>
-          </div>
-        </div>
-
-        <!-- Document Pane -->
-        <div id="tabDocPane" class="tab-pane">
-          <div class="dropzone-box" id="docDropzone">
-            <svg width="44" height="44" fill="none" stroke="var(--accent-cyan)" stroke-width="1.75" viewBox="0 0 24 24" style="margin-bottom:0.75rem;">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
-            </svg>
-            <div style="font-weight:700; margin-bottom:0.25rem;">Drop PDF, DOC, DOCX, or TXT study guide</div>
-            <div style="font-size:0.85rem; color:var(--text-secondary);">or click to select file from your device</div>
-            <input type="file" id="docFileInput" accept=".pdf,.doc,.docx,.txt" style="display:none;" />
-          </div>
-        </div>
-
-        <!-- Image Pane -->
-        <div id="tabImgPane" class="tab-pane hidden">
-          <div class="dropzone-box" id="imgDropzone">
-            <svg width="44" height="44" fill="none" stroke="var(--primary-light)" stroke-width="1.75" viewBox="0 0 24 24" style="margin-bottom:0.75rem;">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
-            </svg>
-            <div style="font-weight:700; margin-bottom:0.25rem;">Drop photograph of notes, textbook page, or diagram</div>
-            <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">Supports PNG, JPG, JPEG, WEBP</div>
-            <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
-              <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); document.getElementById('cameraFileInput').click();">
-                📷 Take Photo with Camera
+          <!-- Exam Mode vs Practice Mode -->
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Preparation Mode</label>
+            <div class="mode-cards-row">
+              <button type="button" class="select-card selected" data-exam-mode="exam">
+                <span class="select-card-check">✓</span>
+                <span class="select-card-title">EXAM MODE</span>
+                <span class="select-card-desc">No answers shown until submission. Full examination simulation with post-exam grading and weak-area analysis.</span>
               </button>
-              <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('imgFileInput').click();">
-                📁 Browse Gallery / Files
+              <button type="button" class="select-card" data-exam-mode="practice">
+                <span class="select-card-check">✓</span>
+                <span class="select-card-title">PRACTICE MODE</span>
+                <span class="select-card-desc">Immediate feedback and step-by-step explanation revealed right after you answer each question.</span>
               </button>
             </div>
-            <input type="file" id="imgFileInput" accept="image/*" style="display:none;" />
-            <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display:none;" />
           </div>
-        </div>
 
-        <!-- Paste Text Pane -->
-        <div id="tabTextPane" class="tab-pane hidden">
-          <div class="form-group">
-            <label class="form-label">Paste Study Material / Notes / Excerpt</label>
-            <textarea id="pastedContent" class="form-textarea" placeholder="Paste your revision text, definitions, teacher's notes, or textbook chapter here..."></textarea>
-          </div>
-        </div>
-
-        <!-- Enter Topic Pane -->
-        <div id="tabTopicPane" class="tab-pane hidden">
-          <div class="form-group">
-            <label class="form-label">Target Topic Name</label>
-            <input type="text" id="targetTopic" class="form-input" placeholder="e.g. Quadratic Equations, Photosynthesis, Thermodynamics, Civil War..." />
-            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.35rem;">
-              EXAMIVO uses the academic stage and selected examination syllabus to synthesize the appropriate curriculum questions.
+          <!-- Timer Option -->
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label class="form-label">Examination Timer (Recommended: <span id="recommended-time-label">15 min</span>)</label>
+            <div class="pill-selector-group">
+              <button type="button" class="pill-option selected" data-timer-opt="timed">Timed Examination</button>
+              <button type="button" class="pill-option" data-timer-opt="untimed">Untimed Session</button>
             </div>
           </div>
         </div>
 
-        <!-- Selected File Status Badge -->
-        <div id="selectedFileCard" class="file-preview-card hidden">
-          <div style="display:flex; align-items:center; gap:0.75rem;">
-            <span style="font-size:1.25rem;">📄</span>
-            <div>
-              <div id="selectedFileName" style="font-weight:700; font-size:0.9rem;">filename.pdf</div>
-              <div id="selectedFileSize" style="font-size:0.775rem; color:var(--text-muted);">240 KB</div>
+        <div class="wizard-footer-nav">
+          <button type="button" class="btn btn-secondary" data-prev-step="2">← Back to Subject</button>
+          <button type="button" class="btn btn-primary btn-lg" id="step-3-next-btn">Continue to Study Material →</button>
+        </div>
+      </section>
+
+      <!-- STEP 4: WHAT ARE YOU STUDYING? / GIVE EXAMIVO SOMETHING TO WORK WITH -->
+      <section class="wizard-step" data-step="4" aria-labelledby="step4-title">
+        <div class="wizard-header">
+          <div class="wizard-eyebrow">Step 4 of 4 · Study Material Input</div>
+          <h1 class="wizard-title" id="step4-title">Give EXAMIVO something to work with.</h1>
+          <p class="wizard-subtitle">
+            Upload your notes or textbook pages, paste study text, or enter a syllabus topic.
+          </p>
+        </div>
+
+        <!-- 4 Material Input Option Cards -->
+        <div class="material-mode-grid" role="tablist" aria-label="Material input options">
+          <button type="button" class="material-mode-card" data-material-mode="document">
+            <div class="material-mode-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             </div>
-          </div>
-          <button class="btn btn-ghost btn-sm" id="removeFileBtn" style="color:var(--danger);">&times; Remove</button>
-        </div>
+            <span class="select-card-title">Upload Document</span>
+            <span class="select-card-desc">PDF, DOC, DOCX, TXT</span>
+          </button>
 
-        <div style="display:flex; justify-content:space-between; margin-top:2rem;">
-          <button class="btn btn-secondary" onclick="prevStep(3)">&larr; Back</button>
-          <button class="btn btn-primary" onclick="nextStep(5)">Configure Exam Mode &rarr;</button>
-        </div>
-      </div>
-
-      <!-- STEP 5: Configuration & Preferences -->
-      <div id="stepCard5" class="step-card-box hidden">
-        <h2 class="step-question-title">Configure your practice session.</h2>
-        <p class="step-question-desc">Select question volume, difficulty weighting, and real examination simulation mode.</p>
-
-        <!-- Question Count -->
-        <div class="form-group">
-          <label class="form-label">Question Count</label>
-          <div class="options-grid" id="questionCountGrid">
-            <div class="option-tile" data-val="5"><div class="option-tile-title">5 Questions</div><div class="option-tile-sub">Sprint</div></div>
-            <div class="option-tile selected" data-val="10"><div class="option-tile-title">10 Questions</div><div class="option-tile-sub">Standard</div></div>
-            <div class="option-tile" data-val="15"><div class="option-tile-title">15 Questions</div><div class="option-tile-sub">Comprehensive</div></div>
-            <div class="option-tile" data-val="20"><div class="option-tile-title">20 Questions</div><div class="option-tile-sub">Full Paper</div></div>
-          </div>
-        </div>
-
-        <!-- Difficulty -->
-        <div class="form-group" style="margin-top:1.5rem;">
-          <label class="form-label">Difficulty Level</label>
-          <div class="options-grid" id="difficultyGrid">
-            <div class="option-tile" data-val="Easy"><div class="option-tile-title">Easy</div><div class="option-tile-sub">Foundational</div></div>
-            <div class="option-tile selected" data-val="Medium"><div class="option-tile-title">Medium</div><div class="option-tile-sub">Standard Rigor</div></div>
-            <div class="option-tile" data-val="Hard"><div class="option-tile-title">Hard</div><div class="option-tile-sub">Distractor Heavy</div></div>
-            <div class="option-tile" data-val="Exam Level"><div class="option-tile-title">Exam Level</div><div class="option-tile-sub">Authentic Past Standard</div></div>
-            <div class="option-tile" data-val="Mixed"><div class="option-tile-title">Mixed</div><div class="option-tile-sub">Tiered Cognitive Scale</div></div>
-          </div>
-        </div>
-
-        <!-- Exam Mode -->
-        <div class="form-group" style="margin-top:1.5rem;">
-          <label class="form-label">Examination Mode</label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;" id="modeGrid">
-            <div class="option-tile selected" data-val="exam">
-              <div class="option-tile-title">EXAM MODE</div>
-              <div class="option-tile-sub" style="margin-top:0.35rem;">Real timed test. No answers shown until final submission.</div>
+          <button type="button" class="material-mode-card" data-material-mode="image">
+            <div class="material-mode-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             </div>
-            <div class="option-tile" data-val="practice">
-              <div class="option-tile-title">PRACTICE MODE</div>
-              <div class="option-tile-sub" style="margin-top:0.35rem;">Immediate feedback, step-by-step explanations, and tips after each answer.</div>
-            </div>
-          </div>
-        </div>
+            <span class="select-card-title">Upload Image</span>
+            <span class="select-card-desc">JPG, JPEG, PNG, WEBP</span>
+          </button>
 
-        <div style="display:flex; justify-content:space-between; margin-top:2.5rem;">
-          <button class="btn btn-secondary" onclick="prevStep(4)">&larr; Back</button>
-          <button class="btn btn-primary btn-lg" id="generateExamBtn" onclick="startGeneration()">
-            Analyze & Build Exam
-            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
-            </svg>
+          <button type="button" class="material-mode-card" data-material-mode="text">
+            <div class="material-mode-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+            </div>
+            <span class="select-card-title">Paste Text</span>
+            <span class="select-card-desc">Notes, handouts, or chapters</span>
+          </button>
+
+          <button type="button" class="material-mode-card selected" data-material-mode="topic">
+            <div class="material-mode-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            </div>
+            <span class="select-card-title">Enter Topic(s)</span>
+            <span class="select-card-desc">One or multiple topics to research</span>
           </button>
         </div>
-      </div>
 
-      <!-- EXAM FOCUS SCREEN (Shown after AI Material Analysis) -->
-      <div id="examFocusCard" class="focus-screen-card hidden">
-        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem;">
-          <span class="badge badge-cyan">AI ARCHITECTURE BLUEPRINT</span>
-          <span class="badge badge-primary" id="focusExamBadge">WAEC • SS3</span>
+        <!-- Panel 1: Upload Document -->
+        <div class="material-workspace-box" id="material-panel-document" style="display:none;">
+          <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.txt" class="sr-only" />
+          <div class="upload-dropzone" id="doc-dropzone" role="button" tabindex="0" aria-label="Drag and drop or click to upload document">
+            <div class="upload-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div style="font-weight:700; font-size:1.02rem; color:var(--text-primary);">Drag and drop your study document here, or click to browse</div>
+            <div style="font-size:0.84rem; color:var(--text-secondary);">Supports PDF, DOC, DOCX, and TXT files · Analyzes headings, definitions, formulas, and examples</div>
+          </div>
+          <div id="doc-file-preview" style="display:none;"></div>
         </div>
 
-        <h2 style="font-size:1.75rem; font-weight:800; letter-spacing:-0.02em; margin-bottom:0.5rem;">
-          EXAM FOCUS
-        </h2>
-        <p id="focusReasonText" style="color:var(--text-secondary); font-size:0.95rem; line-height:1.5; margin-bottom:1.5rem;">
-          Prioritized based on the selected examination format and your supplied material.
-        </p>
-
-        <div style="font-weight:700; font-size:0.85rem; color:var(--accent-cyan); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">
-          ★ High Priority Concepts
+        <!-- Panel 2: Upload Image -->
+        <div class="material-workspace-box" id="material-panel-image" style="display:none;">
+          <input type="file" id="img-file-input" accept=".jpg,.jpeg,.png,.webp,image/*" class="sr-only" />
+          <div class="upload-dropzone" id="img-dropzone" role="button" tabindex="0" aria-label="Drag and drop or click to upload image">
+            <div class="upload-icon-circle">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div style="font-weight:700; font-size:1.02rem; color:var(--text-primary);">Drag and drop a photo of your notes, textbook page, or diagram</div>
+            <div style="font-size:0.84rem; color:var(--text-secondary);">Supports JPG, JPEG, PNG, and WEBP · Printed notes, handwritten notes, screenshots &amp; worksheets</div>
+          </div>
+          <div id="img-file-preview" style="display:none;"></div>
+          <div class="form-group" style="margin-top:1.15rem;">
+            <label class="form-label" for="image-context-note">Topic(s) / Diagram Context or Key Transcription (Helps verify handwritten or low-light sections)</label>
+            <textarea id="image-context-note" class="form-textarea" rows="3" placeholder="e.g. Handwritten notes on Ohm's Law, series and parallel resistors, and circuit diagrams..."></textarea>
+          </div>
         </div>
-        <div id="focusHighPriorityList" class="focus-topics-list"></div>
 
-        <div style="font-weight:700; font-size:0.85rem; color:var(--primary-light); text-transform:uppercase; letter-spacing:0.06em; margin-top:1.5rem; margin-bottom:0.75rem;">
-          ✓ Also Revise
+        <!-- Panel 3: Paste Text -->
+        <div class="material-workspace-box" id="material-panel-text" style="display:none;">
+          <div class="form-group">
+            <label class="form-label" for="pasted-text-field">Paste Your Study Material, Lecture Notes, or Textbook Passage</label>
+            <textarea
+              id="pasted-text-field"
+              class="form-textarea"
+              rows="8"
+              placeholder="Paste your chapter notes, definitions, formulas, or summary points here..."
+            ></textarea>
+          </div>
         </div>
-        <div id="focusAlsoReviseList" class="focus-topics-list"></div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2.5rem; padding-top:1.5rem; border-top:1px solid var(--border);">
-          <button class="btn btn-secondary" onclick="returnToConfig()">&larr; Adjust Options</button>
-          <button class="btn btn-primary btn-lg" id="startExamFromFocusBtn" onclick="launchExam()">
-            Begin Examination &rarr;
+        <!-- Panel 4: Enter Topic(s) -->
+        <div class="material-workspace-box" id="material-panel-topic">
+          <div class="form-group">
+            <label class="form-label" for="topic-input-field">What topic or topics are you studying? (Enter one or multiple topics separated by commas or new lines)</label>
+            <textarea
+              id="topic-input-field"
+              class="form-textarea"
+              rows="3"
+              placeholder='e.g. "Osmosis, Mitosis, and Photosynthesis" or "Quadratic equations, Completing the square" or "Plate tectonics, Volcanoes, Earthquakes"'
+            ></textarea>
+            <div id="detected-topics-strip" style="display:flex; flex-wrap:wrap; align-items:center; gap:0.45rem; margin-top:0.55rem;"></div>
+            <span style="font-size:0.82rem; color:var(--text-muted); margin-top:0.25rem;">
+              EXAMIVO searches and researches each topic you enter, adapts to your Class and Examination Type, and builds real, concept-specific examination questions.
+            </span>
+          </div>
+        </div>
+
+        <div class="wizard-footer-nav">
+          <button type="button" class="btn btn-secondary" data-prev-step="3">← Back to Examination</button>
+          <button type="button" class="btn btn-primary btn-lg" id="start-analysis-btn">
+            <span>Analyze &amp; Prepare Exam</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
-      </div>
+      </section>
+
+      <!-- STEP 5: EXAM FOCUS SCREEN (Shown After AI Analysis Before Starting Exam) -->
+      <section class="wizard-step" data-step="5" aria-labelledby="step5-title">
+        <div class="wizard-header">
+          <div class="wizard-eyebrow">Analysis Complete · Examination Blueprint Ready</div>
+          <h1 class="wizard-title" id="step5-title">EXAM FOCUS</h1>
+          <p class="wizard-subtitle">
+            Review the prioritized concepts identified by EXAMIVO before starting your examination.
+          </p>
+        </div>
+
+        <div class="focus-card-container">
+          <div id="focus-exam-meta-summary" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.25rem;"></div>
+
+          <div class="focus-priority-grid">
+            <!-- High Priority -->
+            <div class="focus-column high-priority">
+              <div class="focus-col-title" style="color:var(--primary);">
+                <span>● High Priority</span>
+              </div>
+              <ul class="focus-concept-list" id="focus-high-priority-list"></ul>
+            </div>
+
+            <!-- Also Revise -->
+            <div class="focus-column">
+              <div class="focus-col-title" style="color:var(--accent);">
+                <span>○ Also Revise</span>
+              </div>
+              <ul class="focus-concept-list" id="focus-also-revise-list"></ul>
+            </div>
+          </div>
+
+          <div class="focus-rationale-banner" id="focus-rationale-text">
+            Prioritized based on the selected examination format and your supplied material.
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
+            <button type="button" class="btn btn-secondary" data-prev-step="4">← Adjust Material</button>
+            <button type="button" class="btn btn-primary btn-lg" id="begin-exam-btn">
+              <span>Start Examination Now</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   </main>
 
-  <script type="module">
-    import { AIService, StorageManager, showAILoading, updateAIStage, hideAILoading, showToast, escapeHTML } from '/app.js';
+  <!-- FULL-SCREEN AI LOADING EXPERIENCE: "EXAMIVO IS THINKING" -->
+  <div class="ai-thinking-overlay" id="ai-thinking-overlay" aria-hidden="true" role="dialog" aria-labelledby="thinking-title">
+    <div class="thinking-container">
+      <div id="thinking-core-slot"></div>
+      <h2 class="thinking-heading" id="thinking-title">EXAMIVO IS THINKING</h2>
+      <p class="thinking-subcontext">Transforming your study material into targeted examination practice</p>
 
-    const wizard = {
-      currentStep: 1,
-      academicLevel: 'SS3',
-      subject: 'Mathematics',
-      examType: 'WAEC',
-      materialType: 'topic',
-      materialText: '',
-      imageBase64: null,
-      imageMimeType: null,
-      topic: '',
-      questionCount: 10,
-      difficulty: 'Medium',
-      examMode: 'exam',
-      examFocus: null,
-      generatedExam: null,
-    };
+      <div class="thinking-stages-list" id="thinking-stages-list"></div>
+    </div>
+  </div>
 
-    window.nextStep = (step) => {
-      document.getElementById(`stepCard${wizard.currentStep}`).classList.add('hidden');
-      document.getElementById(`stepCard${step}`).classList.remove('hidden');
-      document.getElementById(`node${wizard.currentStep}`).classList.remove('active');
-      document.getElementById(`node${wizard.currentStep}`).classList.add('completed');
-      document.getElementById(`node${step}`).classList.add('active');
-      wizard.currentStep = step;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Home</span>
+    </a>
+    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Dashboard</span>
+    </a>
+    <a href="setup.html" class="mobile-nav-item active">
+      <span>Prepare</span>
+    </a>
+    <a href="history.html" class="mobile-nav-item" data-smooth-nav>
+      <span>History</span>
+    </a>
+  </nav>
 
-    window.prevStep = (step) => {
-      document.getElementById(`stepCard${wizard.currentStep}`).classList.add('hidden');
-      document.getElementById(`stepCard${step}`).classList.remove('hidden');
-      document.getElementById(`node${wizard.currentStep}`).classList.remove('active');
-      document.getElementById(`node${step}`).classList.add('active');
-      document.getElementById(`node${step}`).classList.remove('completed');
-      wizard.currentStep = step;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-      // Check for pre-filled data (e.g. from Weak Area Practice)
-      const prefill = sessionStorage.getItem('examivo_setup_prefill');
-      if (prefill) {
-        try {
-          const data = JSON.parse(prefill);
-          sessionStorage.removeItem('examivo_setup_prefill');
-          if (data.topic) {
-            wizard.topic = data.topic;
-            wizard.materialType = 'topic';
-            const topicInput = document.getElementById('targetTopic');
-            if (topicInput) topicInput.value = data.topic;
-            // Activate topic tab
-            document.querySelectorAll('.material-tab-btn').forEach(b => b.classList.remove('active'));
-            const topicTab = document.querySelector('[data-tab="enter-topic"]');
-            if (topicTab) topicTab.classList.add('active');
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-            document.getElementById('tabTopicPane').classList.remove('hidden');
-          }
-        } catch (e) {}
-      }
-
-      // Step 1: Level click
-      document.querySelectorAll('#stepCard1 .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#stepCard1 .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.academicLevel = tile.getAttribute('data-val');
-        });
-      });
-
-      // Step 2: Subject click
-      document.querySelectorAll('#subjectsGrid .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#subjectsGrid .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.subject = tile.getAttribute('data-val');
-        });
-      });
-
-      // Step 3: Exam & Assessment Type click
-      document.querySelectorAll('#stepCard3 .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#stepCard3 .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.examType = tile.getAttribute('data-val');
-        });
-      });
-
-      // Step 4: Material Tabs
-      document.querySelectorAll('.material-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.material-tab-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          const tab = btn.getAttribute('data-tab');
-          document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-
-          if (tab === 'upload-doc') {
-            document.getElementById('tabDocPane').classList.remove('hidden');
-            wizard.materialType = 'document';
-          } else if (tab === 'upload-img') {
-            document.getElementById('tabImgPane').classList.remove('hidden');
-            wizard.materialType = 'image';
-          } else if (tab === 'paste-text') {
-            document.getElementById('tabTextPane').classList.remove('hidden');
-            wizard.materialType = 'text';
-          } else if (tab === 'enter-topic') {
-            document.getElementById('tabTopicPane').classList.remove('hidden');
-            wizard.materialType = 'topic';
-          }
-        });
-      });
-
-      // File upload dropzones
-      setupDropzone('docDropzone', 'docFileInput', handleDocUpload);
-      setupDropzone('imgDropzone', 'imgFileInput', handleImgUpload);
-      const camInput = document.getElementById('cameraFileInput');
-      if (camInput) {
-        camInput.onchange = () => {
-          if (camInput.files.length) handleImgUpload(camInput.files[0]);
-        };
-      }
-
-      document.getElementById('removeFileBtn').onclick = () => {
-        wizard.materialText = '';
-        wizard.imageBase64 = null;
-        wizard.imageMimeType = null;
-        document.getElementById('selectedFileCard').classList.add('hidden');
-        showToast('File removed', 'info');
-      };
-
-      // Step 5: Question Count
-      document.querySelectorAll('#questionCountGrid .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#questionCountGrid .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.questionCount = parseInt(tile.getAttribute('data-val'), 10);
-        });
-      });
-
-      // Step 5: Difficulty
-      document.querySelectorAll('#difficultyGrid .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#difficultyGrid .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.difficulty = tile.getAttribute('data-val');
-        });
-      });
-
-      // Step 5: Mode
-      document.querySelectorAll('#modeGrid .option-tile').forEach(tile => {
-        tile.addEventListener('click', () => {
-          document.querySelectorAll('#modeGrid .option-tile').forEach(t => t.classList.remove('selected'));
-          tile.classList.add('selected');
-          wizard.examMode = tile.getAttribute('data-val');
-        });
-      });
-
-      // URL Query Param pre-selection (e.g. ?exam=Continuous+Assessment+1+(CA+1)&subject=Mathematics)
-      const urlParams = new URLSearchParams(window.location.search);
-      const qExam = urlParams.get('exam');
-      const qSubject = urlParams.get('subject');
-      const qLevel = urlParams.get('level');
-
-      if (qLevel) {
-        const levelTile = document.querySelector(`#stepCard1 .option-tile[data-val="${qLevel}"]`);
-        if (levelTile) {
-          document.querySelectorAll('#stepCard1 .option-tile').forEach(t => t.classList.remove('selected'));
-          levelTile.classList.add('selected');
-          wizard.academicLevel = qLevel;
-        }
-      }
-
-      if (qSubject) {
-        const subjectTile = document.querySelector(`#subjectsGrid .option-tile[data-val="${qSubject}"]`);
-        if (subjectTile) {
-          document.querySelectorAll('#subjectsGrid .option-tile').forEach(t => t.classList.remove('selected'));
-          subjectTile.classList.add('selected');
-          wizard.subject = qSubject;
-        }
-      }
-
-      if (qExam) {
-        const examTile = document.querySelector(`#stepCard3 .option-tile[data-val="${qExam}"]`);
-        if (examTile) {
-          document.querySelectorAll('#stepCard3 .option-tile').forEach(t => t.classList.remove('selected'));
-          examTile.classList.add('selected');
-          wizard.examType = qExam;
-        }
-        // Jump directly to Step 4 (Material Input) for instant streamlined prep
-        nextStep(4);
-        showToast(`Selected: ${qExam}`, 'info');
-      }
-    });
-
-    function setupDropzone(dropzoneId, inputId, handler) {
-      const dropzone = document.getElementById(dropzoneId);
-      const input = document.getElementById(inputId);
-      if (!dropzone || !input) return;
-
-      dropzone.onclick = () => input.click();
-      dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('dragover'); };
-      dropzone.ondragleave = () => dropzone.classList.remove('dragover');
-      dropzone.ondrop = (e) => {
-        e.preventDefault();
-        dropzone.classList.remove('dragover');
-        if (e.dataTransfer.files.length) {
-          handler(e.dataTransfer.files[0]);
-        }
-      };
-      input.onchange = () => {
-        if (input.files.length) handler(input.files[0]);
-      };
-    }
-
-    function handleDocUpload(file) {
-      displayFilePreview(file.name, file.size);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        wizard.materialText = e.target.result;
-        wizard.materialType = 'document';
-        showToast(`Document uploaded: ${file.name}`, 'success');
-      };
-      reader.readAsText(file);
-    }
-
-    function handleImgUpload(file) {
-      displayFilePreview(file.name, file.size);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const fullDataUrl = e.target.result;
-        const [header, base64] = fullDataUrl.split(',');
-        wizard.imageBase64 = base64;
-        wizard.imageMimeType = file.type || 'image/jpeg';
-        wizard.materialType = 'image';
-        showToast(`Image loaded: ${file.name}`, 'success');
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function displayFilePreview(name, size) {
-      const card = document.getElementById('selectedFileCard');
-      const nameEl = document.getElementById('selectedFileName');
-      const sizeEl = document.getElementById('selectedFileSize');
-      nameEl.textContent = name;
-      sizeEl.textContent = `${Math.round(size / 1024)} KB`;
-      card.classList.remove('hidden');
-    }
-
-    window.startGeneration = async () => {
-      // Gather inputs
-      const textVal = document.getElementById('pastedContent')?.value.trim();
-      const topicVal = document.getElementById('targetTopic')?.value.trim();
-
-      if (wizard.materialType === 'text' && textVal) {
-        wizard.materialText = textVal;
-      }
-      if (wizard.materialType === 'topic') {
-        wizard.topic = topicVal || wizard.subject;
-      }
-
-      // Show AI loading stages
-      const stages = [
-        'Reading your material',
-        'Identifying key concepts',
-        'Adapting to your level',
-        'Analyzing examination patterns',
-        'Building your questions',
-        'Checking question quality'
-      ];
-      showAILoading('EXAMIVO IS THINKING', stages);
-
-      try {
-        updateAIStage(0);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(1);
-        // Stage 1: Analyze material & get blueprint
-        const focusData = await AIService.analyzeMaterial({
-          academicLevel: wizard.academicLevel,
-          subject: wizard.subject,
-          examType: wizard.examType,
-          materialType: wizard.materialType,
-          materialText: wizard.materialText,
-          imageBase64: wizard.imageBase64,
-          imageMimeType: wizard.imageMimeType,
-          topic: wizard.topic || wizard.subject
-        });
-        wizard.examFocus = focusData;
-
-        updateAIStage(2);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(3);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(4);
-        // Stage 2: Generate questions
-        const examData = await AIService.generateExam({
-          academicLevel: wizard.academicLevel,
-          subject: wizard.subject,
-          examType: wizard.examType,
-          questionCount: wizard.questionCount,
-          difficulty: wizard.difficulty,
-          materialText: wizard.materialText,
-          imageBase64: wizard.imageBase64,
-          imageMimeType: wizard.imageMimeType,
-          topic: wizard.topic || wizard.subject,
-          examFocus: wizard.examFocus
-        });
-
-        updateAIStage(5);
-        await new Promise(r => setTimeout(r, 600));
-
-        wizard.generatedExam = {
-          ...examData,
-          id: 'exam_' + Date.now(),
-          academicLevel: wizard.academicLevel,
-          subject: wizard.subject,
-          examType: wizard.examType,
-          examMode: wizard.examMode,
-          difficulty: wizard.difficulty,
-          createdAt: new Date().toISOString()
-        };
-
-        hideAILoading();
-        renderExamFocusScreen();
-      } catch (err) {
-        hideAILoading();
-        showToast(err.message || 'Error creating exam. Please try again.', 'error');
-      }
-    };
-
-    function renderExamFocusScreen() {
-      document.getElementById('stepCard5').classList.add('hidden');
-      document.getElementById('stepIndicatorBar').classList.add('hidden');
-      const focusCard = document.getElementById('examFocusCard');
-      focusCard.classList.remove('hidden');
-
-      document.getElementById('focusExamBadge').textContent = `${wizard.examType} • ${wizard.academicLevel}`;
-      document.getElementById('focusReasonText').textContent = wizard.examFocus?.summaryReason || 'Prioritized based on the selected examination format and your supplied material.';
-
-      const highList = document.getElementById('focusHighPriorityList');
-      highList.innerHTML = (wizard.examFocus?.highPriority || []).map(p => `
-        <div class="focus-topic-item priority">
-          <div class="focus-topic-title">${escapeHTML(p.title)}</div>
-          <div class="focus-topic-reason">${escapeHTML(p.importance)}</div>
-        </div>
-      `).join('');
-
-      const alsoList = document.getElementById('focusAlsoReviseList');
-      alsoList.innerHTML = (wizard.examFocus?.alsoRevise || []).map(p => `
-        <div class="focus-topic-item">
-          <div class="focus-topic-title">${escapeHTML(p.title)}</div>
-          <div class="focus-topic-reason">${escapeHTML(p.importance)}</div>
-        </div>
-      `).join('');
-
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    window.returnToConfig = () => {
-      document.getElementById('examFocusCard').classList.add('hidden');
-      document.getElementById('stepIndicatorBar').classList.remove('hidden');
-      document.getElementById('stepCard5').classList.remove('hidden');
-    };
-
-    window.launchExam = () => {
-      if (wizard.generatedExam) {
-        sessionStorage.setItem('examivo_current_exam', JSON.stringify(wizard.generatedExam));
-        window.location.href = '/exam.html';
-      }
-    };
-  </script>
+  <script type="module" src="setup.js"></script>
 </body>
 </html>

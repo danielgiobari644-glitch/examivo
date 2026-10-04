@@ -3,357 +3,159 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Exam Practice - EXAMIVO</title>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  <link rel="stylesheet" href="/style.css" />
+  <meta name="theme-color" content="#080A0F" />
+  <meta name="description" content="Active Examination Session — EXAMIVO" />
+  <title>Examination Session — EXAMIVO</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="global.css" />
+  <link rel="stylesheet" href="animations.css" />
+  <link rel="stylesheet" href="setup.css" />
+  <link rel="stylesheet" href="exam.css" />
 </head>
-<body>
-  <header class="site-nav">
-    <div class="nav-inner">
-      <div style="display:flex; align-items:center; gap:0.75rem;">
-        <a href="/app.html" class="brand-link">
-          <div class="brand-mark">
-            <img src="/icon.svg" alt="EXAMIVO Logo" />
-          </div>
-          <span class="brand-text">EXAMIVO</span>
+<body data-page="exam">
+  <!-- Clean Exam Header Bar -->
+  <header class="exam-header-bar">
+    <div class="exam-header-inner">
+      <div style="display:flex; align-items:center; gap:0.85rem; flex-wrap:wrap;">
+        <a href="app.html" class="brand-link" title="Return to Dashboard">
+          <span class="brand-core-mini" aria-hidden="true"></span>
+          <span>EXAMIVO</span>
         </a>
-        <div style="height:1.25rem; width:1px; background:var(--border);"></div>
-        <div id="examMetaBar" style="font-size:0.875rem; color:var(--text-secondary); font-weight:600;">
-          Mathematics • WAEC
+        <div class="exam-context-pills">
+          <span class="badge badge-neutral" id="exam-header-subject">Subject</span>
+          <span class="badge badge-neutral" id="exam-header-class">Class</span>
+          <span class="badge badge-neutral" id="exam-header-type">Exam</span>
+          <span class="badge badge-primary" id="exam-header-mode">EXAM MODE</span>
         </div>
       </div>
 
-      <div style="display:flex; align-items:center; gap:1rem;">
-        <div id="examTimer" class="exam-timer-badge">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <span id="timerText">20:00</span>
+      <div style="display:flex; align-items:center; gap:0.65rem;">
+        <!-- Timer -->
+        <div class="exam-timer-box" id="exam-timer-box" role="timer" aria-live="off">
+          <span class="exam-timer-label" id="exam-timer-label">TIME REMAINING</span>
+          <span id="exam-timer-value">00:00</span>
         </div>
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-          </svg>
-        </button>
-        <button class="btn btn-secondary btn-sm" id="exitExamBtn">Exit</button>
+
+        <div class="theme-switcher" role="group" aria-label="Color theme">
+          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm" id="exam-submit-btn">Submit</button>
       </div>
     </div>
   </header>
 
-  <main class="page-wrapper exam-layout">
-    <!-- Active Question Box -->
-    <div class="question-box">
-      <div class="question-meta-row">
-        <div style="display:flex; align-items:center; gap:0.65rem;">
-          <span class="badge badge-primary" id="questionCounterBadge">Question 1 of 10</span>
-          <span class="badge badge-cyan" id="questionTopicBadge">General</span>
-        </div>
-        <button class="btn btn-ghost btn-sm" id="flagQuestionBtn" style="color:var(--text-muted);">
-          ⚐ Flag for Review
-        </button>
+  <main class="page-shell">
+    <div class="container">
+      <div class="exam-workspace" id="exam-workspace-container">
+        <!-- Left/Main: Active Question Card -->
+        <section class="question-stage-card" aria-live="polite">
+          <div id="question-transition-body" class="question-enter">
+            <div class="question-top-meta">
+              <span class="question-counter-label" id="question-counter-label">Question 1 of 10</span>
+              <div class="question-tags">
+                <span class="badge badge-neutral" id="question-topic-badge">Topic</span>
+                <span class="badge badge-neutral" id="question-type-badge">Multiple Choice</span>
+                <span class="badge badge-primary" id="question-difficulty-badge">MEDIUM</span>
+              </div>
+            </div>
+
+            <div class="question-prompt-text" id="question-prompt-text"></div>
+
+            <!-- Interactive Answer Area -->
+            <div id="question-interactive-area"></div>
+
+            <!-- Practice Mode Instant Feedback Drawer -->
+            <div id="practice-feedback-drawer" style="display:none;"></div>
+          </div>
+
+          <!-- Question Bottom Action Bar: Previous | Flag | Next | Submit -->
+          <div class="question-action-bar">
+            <div class="question-action-group">
+              <button type="button" class="btn btn-secondary" id="exam-prev-btn">← Previous</button>
+              <button type="button" class="btn btn-secondary btn-flag" id="exam-flag-btn">⚐ Flag</button>
+            </div>
+
+            <div class="question-action-group">
+              <button type="button" class="btn btn-primary" id="exam-next-btn">Next →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right: Question Navigation Panel -->
+        <aside class="question-nav-panel" aria-label="Question navigation">
+          <div class="nav-panel-header">
+            <span class="nav-panel-title">Question Navigator</span>
+            <span style="font-size:0.78rem; color:var(--text-secondary);" id="nav-answered-summary">0 / 10 answered</span>
+          </div>
+
+          <div class="question-num-grid" id="question-num-grid"></div>
+
+          <div class="nav-legend">
+            <div class="legend-item">
+              <span class="legend-swatch current"></span>
+              <span>Current</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch answered"></span>
+              <span>Answered</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch flagged"></span>
+              <span>Flagged</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch unanswered"></span>
+              <span>Unanswered</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary" id="panel-submit-btn" style="width:100%;">
+            Submit Examination
+          </button>
+        </aside>
       </div>
-
-      <div class="question-text" id="questionText">Loading question...</div>
-
-      <!-- Choices List -->
-      <div class="answers-options-list" id="answerChoicesList"></div>
-
-      <!-- Practice Mode Immediate Feedback -->
-      <div id="practiceFeedbackBox" class="practice-feedback-panel hidden">
-        <div style="font-weight:700; margin-bottom:0.35rem;" id="practiceFeedbackVerdict"></div>
-        <div id="practiceFeedbackExplanation" style="font-size:0.875rem; color:var(--text-secondary); line-height:1.5;"></div>
-        <div id="practiceFeedbackTip" style="font-size:0.8rem; color:var(--accent-cyan); margin-top:0.5rem; font-weight:600;"></div>
-      </div>
-    </div>
-
-    <!-- Exam Actions & Navigation -->
-    <div class="exam-actions-bar">
-      <button class="btn btn-secondary" id="prevQuestionBtn">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
-        <span>Previous</span>
-      </button>
-      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-        <button class="btn btn-secondary" id="nextQuestionBtn">
-          <span>Next</span>
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
-        </button>
-        <button class="btn btn-primary" id="submitExamBtn">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span>Submit Exam</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Quick Jump Question Grid -->
-    <div class="card" style="padding:1.25rem;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-        <span style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Question Navigator</span>
-        <div style="display:flex; gap:0.75rem; font-size:0.75rem; color:var(--text-muted);">
-          <span>● Current</span>
-          <span style="color:var(--primary);">■ Answered</span>
-          <span style="color:var(--warning);">▲ Flagged</span>
-        </div>
-      </div>
-      <div class="exam-nav-grid" id="questionNavGrid"></div>
     </div>
   </main>
 
-  <script type="module">
-    import { AIService, StorageManager, showAILoading, updateAIStage, hideAILoading, showToast, escapeHTML } from '/app.js';
+  <!-- Submit Confirmation Modal -->
+  <div class="modal-backdrop" id="submit-confirm-modal" aria-hidden="true" role="dialog" aria-labelledby="submit-modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title" id="submit-modal-title">Submit Examination?</h2>
+          <p class="modal-subtitle" id="submit-modal-summary">
+            Are you ready for EXAMIVO to grade your examination and identify weak areas?
+          </p>
+        </div>
+        <button type="button" class="modal-close" data-close-modal="submit-confirm-modal" aria-label="Close">✕</button>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:1.25rem;">
+        <button type="button" class="btn btn-secondary" data-close-modal="submit-confirm-modal">Keep Reviewing</button>
+        <button type="button" class="btn btn-primary" id="confirm-submit-exam-btn">Submit &amp; Analyze</button>
+      </div>
+    </div>
+  </div>
 
-    let examData = null;
-    let currentIndex = 0;
-    const userAnswers = {};
-    const flaggedQuestions = new Set();
-    let timerSeconds = 1200; // 20 mins default
-    let timerInterval = null;
-    let startTime = Date.now();
+  <!-- FULL-SCREEN SUBMISSION AI ANALYSIS STATE: "ANALYZING YOUR PERFORMANCE" -->
+  <div class="ai-thinking-overlay" id="submission-analysis-overlay" aria-hidden="true" role="dialog" aria-labelledby="submission-analysis-title">
+    <div class="thinking-container">
+      <div id="submission-core-slot"></div>
+      <h2 class="thinking-heading" id="submission-analysis-title">ANALYZING YOUR PERFORMANCE</h2>
+      <p class="thinking-subcontext">Evaluating responses and isolating concept mastery patterns</p>
+      <div class="thinking-stages-list" id="submission-stages-list"></div>
+    </div>
+  </div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const stored = sessionStorage.getItem('examivo_current_exam');
-      if (!stored) {
-        window.location.href = '/app.html';
-        return;
-      }
-      examData = JSON.parse(stored);
-
-      // Setup Meta
-      document.getElementById('examMetaBar').textContent = `${examData.subject} • ${examData.academicLevel} (${examData.examType})`;
-      
-      // Calculate timer (e.g. 1.5 minutes per question)
-      timerSeconds = Math.max((examData.questions?.length || 10) * 90, 300);
-      startTimer();
-
-      renderQuestion(0);
-      renderNavGrid();
-
-      document.getElementById('prevQuestionBtn').onclick = () => {
-        if (currentIndex > 0) renderQuestion(currentIndex - 1);
-      };
-      document.getElementById('nextQuestionBtn').onclick = () => {
-        if (currentIndex < examData.questions.length - 1) renderQuestion(currentIndex + 1);
-      };
-      document.getElementById('flagQuestionBtn').onclick = toggleFlag;
-      document.getElementById('submitExamBtn').onclick = confirmSubmit;
-      document.getElementById('exitExamBtn').onclick = () => {
-        if (confirm('Are you sure you want to exit? Your current progress will be lost.')) {
-          window.location.href = '/app.html';
-        }
-      };
-    });
-
-    function startTimer() {
-      const timerText = document.getElementById('timerText');
-      const timerBadge = document.getElementById('examTimer');
-
-      timerInterval = setInterval(() => {
-        if (timerSeconds <= 0) {
-          clearInterval(timerInterval);
-          showToast('Time is up! Submitting examination...', 'warning');
-          submitExam();
-          return;
-        }
-        timerSeconds--;
-        const mins = Math.floor(timerSeconds / 60);
-        const secs = timerSeconds % 60;
-        timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-        if (timerSeconds < 120) {
-          timerBadge.classList.add('low');
-          timerBadge.classList.add('timer-warning');
-        }
-      }, 1000);
-    }
-
-    function renderQuestion(index) {
-      currentIndex = index;
-      const q = examData.questions[index];
-      if (!q) return;
-
-      const qBox = document.querySelector('.question-box');
-      if (qBox) {
-        qBox.classList.remove('question-animate-in');
-        void qBox.offsetWidth;
-        qBox.classList.add('question-animate-in');
-      }
-
-      document.getElementById('questionCounterBadge').textContent = `Question ${index + 1} of ${examData.questions.length}`;
-      document.getElementById('questionTopicBadge').textContent = q.topic || 'Curriculum Concept';
-      document.getElementById('questionText').textContent = q.question;
-
-      // Update flag button with SVG icons
-      const flagBtn = document.getElementById('flagQuestionBtn');
-      if (flaggedQuestions.has(index)) {
-        flagBtn.style.color = 'var(--warning)';
-        flagBtn.innerHTML = `<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3.75 3v18h1.5v-7.5h6l.75 1.5h7.5V6h-6l-.75-1.5H3.75z"/></svg> <span>Flagged</span>`;
-      } else {
-        flagBtn.style.color = 'var(--text-muted)';
-        flagBtn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v18h1.5v-7.5h6l.75 1.5h7.5V6h-6l-.75-1.5H3.75z"/></svg> <span>Flag Question</span>`;
-      }
-
-      // Render Options
-      const choicesContainer = document.getElementById('answerChoicesList');
-      choicesContainer.innerHTML = '';
-      const letters = ['A', 'B', 'C', 'D'];
-
-      (q.options || []).forEach((opt, optIdx) => {
-        const tile = document.createElement('div');
-        tile.className = 'answer-option-tile';
-        if (userAnswers[index] === optIdx) tile.classList.add('selected');
-
-        // Practice mode answers revelation
-        if (examData.examMode === 'practice' && userAnswers[index] !== undefined) {
-          if (optIdx === q.correctAnswer) tile.classList.add('correct');
-          else if (userAnswers[index] === optIdx) tile.classList.add('incorrect');
-        }
-
-        tile.innerHTML = `
-          <div class="option-letter">${letters[optIdx]}</div>
-          <div style="font-size:0.95rem; font-weight:500;">${escapeHTML(opt)}</div>
-        `;
-
-        tile.onclick = () => selectAnswer(optIdx);
-        choicesContainer.appendChild(tile);
-      });
-
-      // Practice mode feedback
-      const feedbackBox = document.getElementById('practiceFeedbackBox');
-      if (examData.examMode === 'practice' && userAnswers[index] !== undefined) {
-        feedbackBox.classList.remove('hidden');
-        const isRight = userAnswers[index] === q.correctAnswer;
-        const verdict = document.getElementById('practiceFeedbackVerdict');
-        verdict.textContent = isRight ? '✓ Correct!' : '✕ Incorrect';
-        verdict.style.color = isRight ? 'var(--success)' : 'var(--danger)';
-        document.getElementById('practiceFeedbackExplanation').textContent = q.explanation || '';
-        document.getElementById('practiceFeedbackTip').textContent = q.examTip ? `Exam Tip: ${q.examTip}` : '';
-      } else {
-        feedbackBox.classList.add('hidden');
-      }
-
-      // Update prev/next button states
-      document.getElementById('prevQuestionBtn').disabled = currentIndex === 0;
-      updateNavGridHighlights();
-    }
-
-    function selectAnswer(optIdx) {
-      userAnswers[currentIndex] = optIdx;
-      renderQuestion(currentIndex);
-      renderNavGrid();
-    }
-
-    function toggleFlag() {
-      if (flaggedQuestions.has(currentIndex)) {
-        flaggedQuestions.delete(currentIndex);
-      } else {
-        flaggedQuestions.add(currentIndex);
-      }
-      renderQuestion(currentIndex);
-      renderNavGrid();
-    }
-
-    function renderNavGrid() {
-      const grid = document.getElementById('questionNavGrid');
-      if (!grid) return;
-      grid.innerHTML = '';
-
-      examData.questions.forEach((_, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'exam-nav-num-btn';
-        btn.textContent = idx + 1;
-        if (idx === currentIndex) btn.classList.add('current');
-        if (userAnswers[idx] !== undefined) btn.classList.add('answered');
-        if (flaggedQuestions.has(idx)) btn.classList.add('flagged');
-
-        btn.onclick = () => renderQuestion(idx);
-        grid.appendChild(btn);
-      });
-    }
-
-    function updateNavGridHighlights() {
-      const grid = document.getElementById('questionNavGrid');
-      if (!grid) return;
-      const btns = grid.querySelectorAll('.exam-nav-num-btn');
-      btns.forEach((btn, idx) => {
-        btn.classList.toggle('current', idx === currentIndex);
-      });
-    }
-
-    function confirmSubmit() {
-      const answeredCount = Object.keys(userAnswers).length;
-      const total = examData.questions.length;
-      const unAns = total - answeredCount;
-
-      let msg = `You have completed ${answeredCount} of ${total} questions.`;
-      if (unAns > 0) msg += `\nWarning: ${unAns} questions are still unanswered.`;
-      msg += `\n\nReady to analyze performance?`;
-
-      if (confirm(msg)) {
-        submitExam();
-      }
-    }
-
-    async function submitExam() {
-      clearInterval(timerInterval);
-      const timeSpentSeconds = Math.round((Date.now() - startTime) / 1000);
-
-      // Submission AI Analysis Stages
-      const stages = [
-        'Checking answers',
-        'Measuring performance',
-        'Identifying weak areas',
-        'Building your study recommendations'
-      ];
-      showAILoading('ANALYZING YOUR PERFORMANCE', stages);
-
-      try {
-        updateAIStage(0);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(1);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(2);
-        // Call backend performance diagnostic engine
-        const analysis = await AIService.analyzePerformance({
-          examMetadata: {
-            subject: examData.subject,
-            academicLevel: examData.academicLevel,
-            examType: examData.examType
-          },
-          questions: examData.questions,
-          userAnswers,
-          timeSpentSeconds
-        });
-
-        updateAIStage(3);
-        await new Promise(r => setTimeout(r, 600));
-
-        // Save complete exam record
-        const completedExam = {
-          ...examData,
-          userAnswers,
-          timeSpentSeconds,
-          completedAt: new Date().toISOString(),
-          scorePercentage: analysis.scorePercentage,
-          correctCount: analysis.correctCount,
-          totalCount: analysis.totalCount,
-          analysis
-        };
-
-        StorageManager.saveExam(completedExam);
-        if (analysis.weakAreas && analysis.weakAreas.length) {
-          StorageManager.saveWeakAreas(analysis.weakAreas);
-        }
-
-        sessionStorage.setItem('examivo_result_exam', JSON.stringify(completedExam));
-        hideAILoading();
-        window.location.href = '/results.html';
-      } catch (err) {
-        hideAILoading();
-        showToast(err.message || 'Error grading exam', 'error');
-      }
-    }
-  </script>
+  <script type="module" src="exams.js"></script>
 </body>
 </html>

@@ -3,328 +3,181 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Exam Results - EXAMIVO</title>
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  <link rel="stylesheet" href="/style.css" />
+  <meta name="theme-color" content="#080A0F" />
+  <meta name="description" content="Examination Performance Results & Weak Area Analysis — EXAMIVO" />
+  <title>Examination Results — EXAMIVO</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="global.css" />
+  <link rel="stylesheet" href="animations.css" />
+  <link rel="stylesheet" href="setup.css" />
+  <link rel="stylesheet" href="results.css" />
 </head>
-<body>
-  <header class="site-nav">
+<body data-page="results">
+  <!-- Top Navigation -->
+  <header class="top-nav">
     <div class="nav-inner">
-      <a href="/app.html" class="brand-link">
-        <div class="brand-mark">
-          <img src="/icon.svg" alt="EXAMIVO Logo" />
-        </div>
-        <span class="brand-text">EXAMIVO</span>
+      <a href="index.html" class="brand-link" data-smooth-nav>
+        <span class="brand-core-mini" aria-hidden="true"></span>
+        <span>EXAMIVO</span>
       </a>
 
-      <ul class="nav-links">
-        <li><a href="/app.html" class="nav-link">Dashboard</a></li>
-        <li><a href="/setup.html" class="nav-link">New Practice</a></li>
-        <li><a href="/history.html" class="nav-link">History</a></li>
-      </ul>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="app.html" class="nav-link" data-smooth-nav>Dashboard</a>
+        <a href="setup.html" class="nav-link" data-smooth-nav>New Practice</a>
+        <a href="history.html" class="nav-link" data-smooth-nav>History</a>
+        <a href="study.html" class="nav-link" data-smooth-nav>Study Mistakes</a>
+      </nav>
 
       <div class="nav-actions">
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Theme">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-          </svg>
-        </button>
-        <a href="/app.html" class="btn btn-secondary btn-sm nav-btn-desktop">Done</a>
-        <button id="mobileMenuBtn" class="mobile-menu-btn" aria-label="Toggle Navigation Menu">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
-          </svg>
-        </button>
+        <span class="net-pill hidden" role="status">Offline</span>
+
+        <div class="theme-switcher" role="group" aria-label="Color theme">
+          <button type="button" class="theme-btn active" data-theme-choice="dark" title="Dark Mode" aria-label="Dark mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="light" title="Light Mode" aria-label="Light mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          </button>
+          <button type="button" class="theme-btn" data-theme-choice="system" title="System Preference" aria-label="System theme">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </button>
+        </div>
+
+        <div id="nav-auth-slot"></div>
       </div>
     </div>
   </header>
 
-  <main class="page-wrapper results-page">
-    <!-- Score Hero Card -->
-    <div class="score-hero-card">
-      <div style="font-size:0.85rem; font-weight:700; color:var(--accent-cyan); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.75rem;">
-        EXAMINATION COMPLETE
-      </div>
-      <div class="score-display-number" id="animatedScore">0%</div>
-      <div class="score-sub-label" id="scoreSubLabel">0 of 0 correct</div>
-
-      <p id="performanceVerdict" style="max-width:650px; margin:0 auto 2rem; color:var(--text-secondary); font-size:1rem; line-height:1.6;">
-        Evaluating answers...
-      </p>
-
-      <div class="results-action-row">
-        <button class="btn btn-primary btn-lg" id="practiceWeakAreasBtn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
-          <span>Practice My Weak Areas</span>
-        </button>
-        <button class="btn btn-secondary btn-lg" id="studyMistakesBtn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-          <span>Study My Mistakes</span>
-        </button>
-        <a href="/app.html" class="btn btn-ghost btn-lg">Back to Dashboard</a>
-      </div>
-    </div>
-
-    <!-- Weak Areas Module -->
-    <div class="card" style="margin-bottom:2.5rem; border-color:var(--border-highlight);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <h3 style="font-size:1.25rem; font-weight:700;">Cognitive Weak Area Engine</h3>
-        <span class="badge badge-danger" id="weakCountBadge">0 Needs Attention</span>
-      </div>
-      <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">
-        EXAMIVO identified specific conceptual hurdles and misapplied formulas from your incorrect responses:
-      </p>
-
-      <div id="weakAreasContainer" class="weak-areas-list"></div>
-    </div>
-
-    <!-- Question by Question Review -->
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+  <main class="page-shell">
+    <div class="container results-main" id="results-content-root">
+      <!-- Guest Save Progress Prompt Banner -->
+      <div id="guest-save-banner" class="card" style="display:none; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-color:var(--border-highlight); background:var(--primary-soft);">
         <div>
-          <h3 style="font-size:1.25rem; font-weight:700;">Question Review & Explanations</h3>
-          <p style="font-size:0.85rem; color:var(--text-secondary);">Comprehensive breakdown of each question, answer options, and examiner tips.</p>
+          <strong style="color:var(--text-primary); font-size:0.95rem;">Save this examination to your permanent history</strong>
+          <p style="font-size:0.84rem; color:var(--text-secondary);">Create a free account or sign in to keep your weak-area diagnostics and progress across devices.</p>
         </div>
-
-        <!-- Filter tabs -->
-        <div style="display:flex; gap:0.5rem;" id="reviewFilterBtns">
-          <button class="btn btn-secondary btn-sm active" data-filter="all">All</button>
-          <button class="btn btn-secondary btn-sm" data-filter="incorrect">Incorrect</button>
-          <button class="btn btn-secondary btn-sm" data-filter="correct">Correct</button>
-        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="guest-save-progress-btn">Save Progress</button>
       </div>
 
-      <div id="questionsReviewList"></div>
+      <!-- Score Reveal Hero Card -->
+      <section class="score-hero-card" aria-label="Examination Score Summary">
+        <div class="score-dial-column">
+          <div class="score-big-percent" id="score-animated-number">0%</div>
+          <div class="score-fraction-label" id="score-fraction-label">0 / 0 correct</div>
+        </div>
+
+        <div class="score-summary-column">
+          <div class="score-exam-meta" id="result-exam-meta"></div>
+          <h1 class="score-headline" id="result-headline-text">Performance Analysis Complete</h1>
+          <p id="result-subcopy-text" style="font-size:0.98rem;"></p>
+
+          <div style="display:flex; flex-wrap:wrap; gap:0.85rem; margin-top:0.35rem;">
+            <button type="button" class="btn btn-primary btn-lg" id="practice-weak-areas-btn">
+              <span>Practice My Weak Areas</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <button type="button" class="btn btn-secondary btn-lg" id="study-mistakes-btn">
+              <span>Study My Mistakes</span>
+            </button>
+            <a href="setup.html" class="btn btn-ghost btn-lg" data-smooth-nav>New Material</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Performance Breakdown: Strong Areas | Areas to Practice | Weak Areas -->
+      <section aria-labelledby="perf-breakdown-heading" style="margin-bottom:2.25rem;">
+        <h2 id="perf-breakdown-heading" style="font-size:1.15rem; margin-bottom:1rem;">Performance Breakdown</h2>
+        <div class="performance-bands-grid">
+          <div class="perf-band-card band-strong">
+            <div class="perf-band-title" style="color:var(--success);">
+              <span>Strong Areas</span>
+              <span>✓</span>
+            </div>
+            <div class="perf-topic-chips" id="band-strong-chips"></div>
+          </div>
+
+          <div class="perf-band-card band-practice">
+            <div class="perf-band-title" style="color:var(--warning);">
+              <span>Areas to Practice</span>
+              <span>●</span>
+            </div>
+            <div class="perf-topic-chips" id="band-practice-chips"></div>
+          </div>
+
+          <div class="perf-band-card band-weak">
+            <div class="perf-band-title" style="color:var(--danger);">
+              <span>Weak Areas</span>
+              <span>!</span>
+            </div>
+            <div class="perf-topic-chips" id="band-weak-chips"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WEAK AREA ENGINE -->
+      <section class="weak-engine-card" aria-labelledby="weak-engine-title">
+        <div class="weak-engine-header">
+          <div>
+            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--primary); margin-bottom:0.25rem;">
+              EXAMIVO Weak Area Engine
+            </div>
+            <h2 style="font-size:1.35rem;" id="weak-engine-title">EXAMIVO found areas to strengthen.</h2>
+          </div>
+        </div>
+
+        <div class="weak-diagnostic-grid" id="weak-diagnostic-grid"></div>
+
+        <div class="methodology-box" id="weak-methodology-text"></div>
+      </section>
+
+      <!-- QUESTION REVIEW -->
+      <section aria-labelledby="question-review-heading">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.15rem;">
+          <h2 style="font-size:1.35rem;" id="question-review-heading">Question Review</h2>
+
+          <div class="review-filter-tabs" role="tablist" aria-label="Filter reviewed questions">
+            <button type="button" class="pill-option selected" data-review-filter="all">All Questions</button>
+            <button type="button" class="pill-option" data-review-filter="wrong">Incorrect Only</button>
+            <button type="button" class="pill-option" data-review-filter="correct">Correct Only</button>
+            <button type="button" class="pill-option" data-review-filter="flagged">Flagged</button>
+          </div>
+        </div>
+
+        <div class="review-list" id="question-review-list"></div>
+      </section>
     </div>
   </main>
 
-  <script type="module">
-    import { AIService, StorageManager, showAILoading, updateAIStage, hideAILoading, showToast, escapeHTML } from '/app.js';
+  <!-- FULL-SCREEN AI OVERLAY: "BUILDING YOUR NEXT PRACTICE" -->
+  <div class="ai-thinking-overlay" id="weak-practice-overlay" aria-hidden="true" role="dialog" aria-labelledby="weak-practice-title">
+    <div class="thinking-container">
+      <div id="weak-practice-core-slot"></div>
+      <h2 class="thinking-heading" id="weak-practice-title">BUILDING YOUR NEXT PRACTICE</h2>
+      <p class="thinking-subcontext">Adapting question blueprint to reinforce your weak areas</p>
+      <div class="thinking-stages-list" id="weak-practice-stages-list"></div>
+    </div>
+  </div>
 
-    let examResult = null;
-    let currentFilter = 'all';
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+    <a href="index.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Home</span>
+    </a>
+    <a href="app.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Dashboard</span>
+    </a>
+    <a href="setup.html" class="mobile-nav-item" data-smooth-nav>
+      <span>Prepare</span>
+    </a>
+    <a href="history.html" class="mobile-nav-item" data-smooth-nav>
+      <span>History</span>
+    </a>
+  </nav>
 
-    document.addEventListener('DOMContentLoaded', () => {
-      const stored = sessionStorage.getItem('examivo_result_exam');
-      if (!stored) {
-        window.location.href = '/app.html';
-        return;
-      }
-      examResult = JSON.parse(stored);
-
-      animateScoreReveal(examResult.scorePercentage || 0);
-      document.getElementById('scoreSubLabel').textContent = `${examResult.correctCount} of ${examResult.totalCount} correct`;
-      
-      const verdict = examResult.analysis?.performanceVerdict || 'Good examination effort. Review your weak areas below.';
-      document.getElementById('performanceVerdict').textContent = verdict;
-
-      renderWeakAreas();
-      renderQuestionReview();
-
-      // Filter tabs
-      document.querySelectorAll('#reviewFilterBtns button').forEach(btn => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('#reviewFilterBtns button').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentFilter = btn.getAttribute('data-filter');
-          renderQuestionReview();
-        });
-      });
-
-      // Actions
-      document.getElementById('practiceWeakAreasBtn').onclick = handlePracticeWeakAreas;
-      document.getElementById('studyMistakesBtn').onclick = handleStudyMistakes;
-    });
-
-    function animateScoreReveal(targetScore) {
-      const el = document.getElementById('animatedScore');
-      let current = 0;
-      const duration = 1200;
-      const stepTime = 20;
-      const steps = duration / stepTime;
-      const increment = targetScore / steps;
-
-      const timer = setInterval(() => {
-        current += increment;
-        if (current >= targetScore) {
-          current = targetScore;
-          clearInterval(timer);
-        }
-        el.textContent = `${Math.round(current)}%`;
-      }, stepTime);
-    }
-
-    function renderWeakAreas() {
-      const container = document.getElementById('weakAreasContainer');
-      const weakAreas = examResult.analysis?.weakAreas || [];
-      const badge = document.getElementById('weakCountBadge');
-      if (badge) badge.textContent = `${weakAreas.length} Needs Attention`;
-
-      if (!weakAreas.length) {
-        container.innerHTML = `
-          <div style="padding:1.5rem; text-align:center; color:var(--success); font-weight:600;">
-            ✓ Outstanding! No critical concept gaps were detected in this examination.
-          </div>
-        `;
-        document.getElementById('practiceWeakAreasBtn').textContent = '★ Retest Examination';
-        return;
-      }
-
-      container.innerHTML = weakAreas.map(w => `
-        <div class="weak-item">
-          <div class="weak-item-header">
-            <div class="weak-item-topic">${escapeHTML(w.topic)}</div>
-            <span class="badge badge-danger">Needs Practice</span>
-          </div>
-          <div class="weak-item-reason"><strong>Misconception:</strong> ${escapeHTML(w.reason)}</div>
-          <div style="font-size:0.8rem; color:var(--accent-cyan);"><strong>Recommended:</strong> ${escapeHTML(w.recommendedAction || 'Targeted drill practice')}</div>
-        </div>
-      `).join('');
-    }
-
-    function renderQuestionReview() {
-      const container = document.getElementById('questionsReviewList');
-      container.innerHTML = '';
-
-      const letters = ['A', 'B', 'C', 'D'];
-
-      examResult.questions.forEach((q, idx) => {
-        const uAns = examResult.userAnswers[idx];
-        const isCorrect = uAns === q.correctAnswer;
-
-        if (currentFilter === 'incorrect' && isCorrect) return;
-        if (currentFilter === 'correct' && !isCorrect) return;
-
-        const card = document.createElement('div');
-        card.className = `review-item-card ${isCorrect ? 'correct' : 'incorrect'}`;
-
-        const userText = uAns !== undefined ? `${letters[uAns]}: ${q.options?.[uAns] || 'Selected'}` : 'Unanswered';
-        const correctText = `${letters[q.correctAnswer]}: ${q.options?.[q.correctAnswer] || 'Correct'}`;
-
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem;">
-              <span style="font-weight:700;">Question ${idx + 1}</span>
-              <span class="badge ${isCorrect ? 'badge-success' : 'badge-danger'}">${isCorrect ? 'Correct' : 'Incorrect'}</span>
-            </div>
-            <span class="badge badge-primary">${escapeHTML(q.topic || 'Concept')}</span>
-          </div>
-
-          <div style="font-size:1.05rem; font-weight:600; margin-bottom:1rem; color:var(--text-primary); line-height:1.5;">
-            ${escapeHTML(q.question)}
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
-            <div style="padding:0.75rem 1rem; border-radius:var(--radius-sm); background:var(--surface-elevated); border:1px solid ${isCorrect ? 'var(--success-border)' : 'var(--danger-border)'};">
-              <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Your Answer</div>
-              <div style="font-size:0.9rem; font-weight:600; color:${isCorrect ? 'var(--success)' : 'var(--danger)'};">${escapeHTML(userText)}</div>
-            </div>
-
-            <div style="padding:0.75rem 1rem; border-radius:var(--radius-sm); background:var(--surface-elevated); border:1px solid var(--success-border);">
-              <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Correct Answer</div>
-              <div style="font-size:0.9rem; font-weight:600; color:var(--success);">${escapeHTML(correctText)}</div>
-            </div>
-          </div>
-
-          <div style="padding:1rem; background:var(--surface-elevated); border-radius:var(--radius-sm); font-size:0.875rem; line-height:1.5; color:var(--text-secondary);">
-            <strong style="color:var(--text-primary);">Educational Explanation:</strong><br/>
-            ${escapeHTML(q.explanation || 'No explanation provided.')}
-            ${q.examTip ? `<div style="margin-top:0.65rem; color:var(--accent-cyan); font-weight:600;">Exam Tip: ${escapeHTML(q.examTip)}</div>` : ''}
-          </div>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    async function handlePracticeWeakAreas() {
-      const stages = [
-        'Targeting weak concepts',
-        'Adjusting difficulty',
-        'Creating new questions',
-        'Checking question quality'
-      ];
-      showAILoading('BUILDING YOUR NEXT PRACTICE', stages);
-
-      try {
-        updateAIStage(0);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(1);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(2);
-        // Call backend targeted weak practice generator
-        const weakData = await AIService.generateWeakPractice({
-          academicLevel: examResult.academicLevel,
-          subject: examResult.subject,
-          examType: examResult.examType,
-          weakAreas: examResult.analysis?.weakAreas || [],
-          previousQuestions: examResult.questions.filter((_, i) => examResult.userAnswers[i] !== examResult.questions[i].correctAnswer)
-        });
-
-        updateAIStage(3);
-        await new Promise(r => setTimeout(r, 600));
-
-        const weakExam = {
-          ...weakData,
-          id: 'remediation_' + Date.now(),
-          academicLevel: examResult.academicLevel,
-          subject: examResult.subject,
-          examType: examResult.examType,
-          examMode: 'practice', // Practice mode recommended for remediation
-          createdAt: new Date().toISOString()
-        };
-
-        sessionStorage.setItem('examivo_current_exam', JSON.stringify(weakExam));
-        hideAILoading();
-        window.location.href = '/exam.html';
-      } catch (err) {
-        hideAILoading();
-        showToast(err.message || 'Error generating practice', 'error');
-      }
-    }
-
-    async function handleStudyMistakes() {
-      const stages = [
-        'Extracting missed question concepts',
-        'Formulating high-yield revision cards',
-        'Synthesizing memory triggers & pitfalls'
-      ];
-      showAILoading('GENERATING REVISION NOTES', stages);
-
-      try {
-        updateAIStage(0);
-        await new Promise(r => setTimeout(r, 600));
-
-        updateAIStage(1);
-        const missed = examResult.questions.filter((_, i) => examResult.userAnswers[i] !== examResult.questions[i].correctAnswer);
-        const studyData = await AIService.generateStudyNotes({
-          academicLevel: examResult.academicLevel,
-          subject: examResult.subject,
-          examType: examResult.examType,
-          missedQuestions: missed,
-          weakAreas: examResult.analysis?.weakAreas || []
-        });
-
-        updateAIStage(2);
-        await new Promise(r => setTimeout(r, 600));
-
-        sessionStorage.setItem('examivo_study_notes', JSON.stringify({
-          ...studyData,
-          subject: examResult.subject,
-          academicLevel: examResult.academicLevel,
-          examType: examResult.examType
-        }));
-
-        hideAILoading();
-        window.location.href = '/study.html';
-      } catch (err) {
-        hideAILoading();
-        showToast(err.message || 'Failed to generate study notes', 'error');
-      }
-    }
-  </script>
+  <script type="module" src="results.js"></script>
 </body>
 </html>

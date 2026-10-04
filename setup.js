@@ -443,10 +443,36 @@ function initStep4MaterialControls() {
 
   // Pre-populate topic input if set
   const topicInputEl = document.getElementById("topic-input-field");
+  const detectedStripEl = document.getElementById("detected-topics-strip");
+
+  const renderDetectedTopicsPreview = (rawVal) => {
+    if (!detectedStripEl) return;
+    const topics = String(rawVal || "")
+      .split(/[,;\n]+|\s+\band\b\s+|\s*&\s*/i)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 2);
+    if (topics.length === 0) {
+      detectedStripEl.innerHTML = "";
+      return;
+    }
+    detectedStripEl.innerHTML = `
+      <span style="font-size:0.76rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">
+        Topics to Research (${topics.length}):
+      </span>
+      ${topics
+        .map((t) => `<span class="badge badge-primary">${escapeHtml(t)}</span>`)
+        .join("")}
+    `;
+  };
+
   if (topicInputEl) {
-    if (setupState.topicInput) topicInputEl.value = setupState.topicInput;
+    if (setupState.topicInput) {
+      topicInputEl.value = setupState.topicInput;
+      renderDetectedTopicsPreview(setupState.topicInput);
+    }
     topicInputEl.addEventListener("input", () => {
       setupState.topicInput = topicInputEl.value;
+      renderDetectedTopicsPreview(topicInputEl.value);
     });
   }
 
