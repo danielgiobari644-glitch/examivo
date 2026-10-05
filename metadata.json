@@ -1,6 +1,8 @@
 {
   "name": "EXAMIVO",
-  "description": "AI-powered exam preparation platform that transforms study materials into targeted examination practice.",
+  "description": "EXAMIVO - Ultra-modern AI exam generation, intelligent adaptive testing, and collaborative arena.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

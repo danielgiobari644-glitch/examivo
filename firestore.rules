@@ -1,85 +1,72 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ---------- Helper ----------
-    function isSignedIn() {
+    
+    // Helper Functions
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    function isOwner(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Admins are declared with a custom claim: { admin: true }
     function isAdmin() {
-      return isSignedIn() && request.auth.token.admin == true;
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "danielgiobari644@gmail.com" && request.auth.token.email_verified == true));
     }
 
-    // ---------- User profile + private subcollections ----------
-    match /users/{uid} {
-      // Profile document. Owner can read/write their own profile.
-      // Creation is allowed for the signed-in owner only. No public access.
-      allow read: if isOwner(uid) || isAdmin();
-      allow create: if isOwner(uid)
-                    && request.resource.data.displayName is string
-                    && request.resource.data.createdAt == request.time;
-      allow update: if isOwner(uid) && request.resource.data.uid == uid;
-      allow delete: if isAdmin();
-
-      // ---- exams/{examId}: generated exam definitions ----
-      match /exams/{examId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // ---- attempts/{attemptId}: completed examination attempts ----
-      match /attempts/{attemptId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // ---- weakAreas/{conceptId}: derived weak concept records ----
-      match /weakAreas/{conceptId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // ---- studySessions/{sessionId}: revision note sessions ----
-      match /studySessions/{sessionId} {
-        allow read, write: if isOwner(uid);
-      }
-
-      // ---- questions/{questionId}: validated question bank per user ----
-      match /questions/{questionId} {
-        allow read, write: if isOwner(uid);
-      }
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'stats', 'createdAt', 'lastLogin']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() < 100 &&
+             data.email is string &&
+             (!('role' in data) || data.role in ['admin', 'user']);
     }
 
-    // ---------- Global read-only configuration ----------
-    // subjects/, examProfiles/, classProfiles/ are public catalogs.
-    // Only admins may write them. Never use "allow read, write: if true;".
-    match /subjects/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
+    function isValidQuiz(data) {
+      return data.keys().hasAll(['title', 'description', 'questions', 'creatorId', 'createdAt']) &&
+             data.title is string && data.title.size() < 200 &&
+             data.questions is list && data.questions.size() <= 60 &&
+             data.creatorId == request.auth.uid;
     }
 
-    match /examProfiles/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
+    function isValidHistory(data) {
+      return data.keys().hasAll(['userId', 'quizId', 'score', 'totalQuestions', 'timeTaken', 'timestamp']) &&
+             data.userId == request.auth.uid &&
+             data.score is number && data.score >= 0;
     }
 
-    match /classProfiles/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // Rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data) && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)) || isAdmin();
     }
 
-    match /config/{doc} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+    match /quizzes/{quizId} {
+      allow read: if true; // Quizzes are public for sharing & taking
+      allow create: if isAuthenticated() && isValidQuiz(request.resource.data);
+      allow update: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount']));
+      allow delete: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
     }
 
-    // ---------- Deny everything else ----------
-    match /{document=**} {
-      allow read, write: if false;
+    match /notes/{noteId} {
+      allow read: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
+    }
+
+    match /teachings/{teachingId} {
+      allow read: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.creatorId == request.auth.uid || isAdmin());
+    }
+
+    match /history/{historyId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidHistory(request.resource.data);
     }
   }
 }

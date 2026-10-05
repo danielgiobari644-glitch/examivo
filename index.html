@@ -1,241 +1,143 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>EXAMIVO — Prepare for the exam, not just the subject.</title>
-  <meta name="description" content="EXAMIVO is an AI exam preparation platform. Give it your study material, choose your class and examination, and let AI turn what you're studying into focused exam practice." />
-  <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg" />
-  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
-  <meta name="theme-color" content="#0a0b10" />
-  <link rel="manifest" href="manifest.json" />
-  <script>try{var m=localStorage.getItem("examivo.theme")||"dark";if(m==="system")m=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=m;}catch(e){}</script>
-  <link rel="stylesheet" href="css/global.css" />
-  <link rel="stylesheet" href="css/animations.css" />
-  <link rel="stylesheet" href="css/landing.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXAMIVO | Next-Gen AI Exam, Teaching & Study Intelligence</title>
+    <meta name="description" content="EXAMIVO - AI exam generation, interactive concept teaching, and smart study notes powered by Firebase.">
+    
+    <!-- OpenGraph / Social Meta -->
+    <meta property="og:title" content="EXAMIVO | Next-Gen AI Exam & Study Intelligence">
+    <meta property="og:description" content="Use instantly as a guest, or sign in with email/Google to save quizzes, teaching modules, and notes to your cloud library.">
+    <meta property="og:type" content="website">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%236366f1%22/><path d=%22M25 30h50M25 50h35M25 70h45%22 stroke=%22white%22 stroke-width=%228%22 stroke-linecap=%22round%22/><circle cx=%2275%22 cy=%2260%22 r=%2212%22 fill=%22%2306b6d4%22/></svg>">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
-  <div class="landing">
+    <div id="app" class="app-container">
+        <!-- Main Navigation Bar -->
+        <header class="main-nav">
+            <div class="logo-container" id="logo-home">
+                <div class="logo-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </div>
+                <div class="logo-text-group">
+                    <span class="logo-text">EXAMIVO</span>
+                    <span class="logo-tagline">Academic Engine</span>
+                </div>
+            </div>
 
-    <!-- ================= Header ================= -->
-    <header class="landing-header">
-      <div class="container">
-        <a class="brand" href="index.html" aria-label="EXAMIVO home">
-          <img src="assets/logo/logo.svg" alt="EXAMIVO logo" width="180" height="34" />
-        </a>
-        <nav class="landing-nav" aria-label="Primary">
-          <a href="#how">How It Works</a>
-          <a href="#features">Why EXAMIVO</a>
-          <a href="#exams">Exam Types</a>
-        </nav>
-        <span class="spacer"></span>
-        <div class="header-actions">
-          <button class="theme-btn" data-theme-toggle aria-label="Change theme"></button>
-          <a class="btn btn-ghost btn-sm" href="app.html" data-auth-link hidden>Open App</a>
-          <button class="btn btn-secondary btn-sm" data-signin>Sign In</button>
+            <!-- Desktop Links -->
+            <ul class="nav-links">
+                <li><button id="nav-home" class="nav-link-btn active">Home</button></li>
+                <li><button id="nav-studio" class="nav-link-btn">Exam Studio</button></li>
+                <li><button id="nav-teaching" class="nav-link-btn">Teaching</button></li>
+                <li><button id="nav-notes" class="nav-link-btn">Notes</button></li>
+                <li><button id="nav-hub" class="nav-link-btn">Benchmarks</button></li>
+                <li><button id="nav-library" class="nav-link-btn">Cloud Library</button></li>
+            </ul>
+
+            <!-- Auth & User Actions -->
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div id="auth-nav">
+                    <!-- Populated dynamically by app.js -->
+                    <button class="btn-primary" style="font-size: 0.85rem; padding: 0.55rem 1.1rem;" onclick="window.EXAMIVO.openAuthModal()">
+                        Sign In / Register
+                    </button>
+                </div>
+                <button id="mobile-menu-trigger" class="mobile-menu-btn" aria-label="Toggle navigation menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Mobile Navigation Dropdown -->
+        <div id="mobile-dropdown" class="hidden glass-card" style="margin: 0.5rem 1rem; border-radius: var(--radius-md); padding: 1rem; position: sticky; top: 4.5rem; z-index: 99;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('home'); document.getElementById('mobile-dropdown').classList.add('hidden');">Home</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('generate'); document.getElementById('mobile-dropdown').classList.add('hidden');">Exam Studio</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('teaching'); document.getElementById('mobile-dropdown').classList.add('hidden');">Teaching Explainer</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('notes'); document.getElementById('mobile-dropdown').classList.add('hidden');">Study Notes</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('hub'); document.getElementById('mobile-dropdown').classList.add('hidden');">Benchmarks</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('library'); document.getElementById('mobile-dropdown').classList.add('hidden');">Cloud Library</button>
+            </div>
         </div>
-      </div>
-    </header>
 
-    <main id="main">
-      <!-- ================= Hero ================= -->
-      <section class="hero">
-        <div class="hero-bg hero-drift" aria-hidden="true"></div>
-        <div class="container hero-inner">
-          <span class="hero-badge"><span class="dot" aria-hidden="true"></span> AI Exam Intelligence</span>
-          <h1>EXAMIVO</h1>
-          <p class="tagline">Prepare for the exam, not just the subject.</p>
-          <p class="subcopy">
-            Give EXAMIVO your study material, choose your class and examination, and let AI turn what you're
-            studying into focused exam practice.
-          </p>
-          <div class="hero-ctas">
-            <button class="btn btn-primary btn-lg" data-start>
-              Start Preparing
-              <span aria-hidden="true">→</span>
-            </button>
-            <a class="btn btn-secondary btn-lg" href="#how">How It Works</a>
-          </div>
+        <!-- Main Content Core -->
+        <main id="main-content" class="main-content">
+            <!-- Hero Section (Default View) -->
+            <section id="hero" class="hero-section animate-fade-in">
+                <span class="hero-pill">No Account Required To Learn</span>
+                <h1 class="hero-title">
+                    PRECISION TESTING. <br>
+                    <span class="hero-title-highlight">DEEPER COGNITION.</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Transform complex textbooks, lecture notes, or syllabi into rigorous AI examinations, interactive teaching modules, and high-yield study notes. Use freely as a guest, or sign in with email to save your library in the cloud.
+                </p>
 
-          <!-- Hero AI visual -->
-          <div class="hero-visual" aria-hidden="true">
-            <div class="hero-core-wrap" data-hero-core></div>
-            <span class="float-chip chip-a"><span class="fc-dot"></span> WAEC · SS2 Chemistry</span>
-            <span class="float-chip chip-b"><span class="fc-dot"></span> Identifying key concepts</span>
-            <span class="float-chip chip-c"><span class="fc-dot"></span> Quadratic equations · JSS3</span>
-            <span class="float-chip chip-d"><span class="fc-dot"></span> Weak areas → new practice</span>
-          </div>
+                <div class="hero-actions">
+                    <button id="cta-generate" class="btn-primary" style="padding: 0.9rem 1.8rem; font-size: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Synthesize Custom Exam
+                    </button>
+                    <button id="cta-teaching" class="btn-secondary" style="padding: 0.9rem 1.8rem; font-size: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                        Teaching Explainer
+                    </button>
+                    <button id="cta-hub" class="btn-outline" style="padding: 0.9rem 1.5rem; font-size: 1rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                        Instant Benchmarks
+                    </button>
+                </div>
+
+                <!-- Feature Grid Injected by app.js -->
+                <div id="home-feature-cards"></div>
+            </section>
+
+            <!-- Dynamic View Container (Injected by app.js) -->
+            <div id="view-container" class="view-container hidden"></div>
+        </main>
+
+        <!-- Global Modal Overlay -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal-content">
+                <button id="modal-close" class="modal-close-btn" aria-label="Close dialog">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+                <div id="modal-body"></div>
+            </div>
         </div>
-      </section>
 
-      <!-- ================= Pipeline strip ================= -->
-      <section class="pipeline-strip" aria-label="The EXAMIVO pipeline">
-        <div class="container">
-          <div class="pipeline-flow stagger">
-            <span class="pipe-step"><span class="n">1</span> Your material</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">2</span> Content analysis</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">3</span> Class adaptation</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">4</span> Exam profile</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">5</span> Concept focus</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">6</span> Question blueprint</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">7</span> Generation & validation</span><span class="pipe-arrow" aria-hidden="true">→</span>
-            <span class="pipe-step"><span class="n">8</span> Grading & growth</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= How it works ================= -->
-      <section class="landing-section centered" id="how">
-        <div class="container">
-          <div class="section-heading">
-            <h2>From your notes to your exam</h2>
-            <p>EXAMIVO doesn't generate random quizzes. It studies your material, adapts to your level, respects your
-              examination format — then builds practice that actually prepares you.</p>
-          </div>
-          <div class="steps-grid stagger">
-            <article class="card card-hover step-card">
-              <span class="step-num">STEP 01</span>
-              <h3>Show it what you're studying</h3>
-              <p>Upload a PDF or document, snap your handwritten notes, paste text — or just name a topic. EXAMIVO reads
-                headings, definitions, formulas, processes and key terms.</p>
-            </article>
-            <article class="card card-hover step-card">
-              <span class="step-num">STEP 02</span>
-              <h3>Tell it your exam</h3>
-              <p>Your class sets the language and depth. WAEC, NECO, JAMB, Common Entrance or a school test sets the
-                question style, structure and marking expectations.</p>
-            </article>
-            <article class="card card-hover step-card">
-              <span class="step-num">STEP 03</span>
-              <h3>See your exam focus</h3>
-              <p>Before a single question appears, EXAMIVO shows what it prioritized and why — based on your material
-                and the examination format you selected.</p>
-            </article>
-            <article class="card card-hover step-card">
-              <span class="step-num">STEP 04</span>
-              <h3>Practice, grade, improve</h3>
-              <p>Sit the exam under real conditions. EXAMIVO grades you, explains every answer, finds your weak areas
-                and builds targeted follow-up practice.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= Features ================= -->
-      <section class="landing-section centered" id="features">
-        <div class="container">
-          <div class="section-heading">
-            <h2>An AI system built for examinations</h2>
-            <p>Not a generic quiz generator. Not a chatbot. A purpose-built preparation engine.</p>
-          </div>
-          <div class="features-grid stagger">
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7V5h16v2M9 20h6M12 5v15"/><path d="M4 7c2.5 2 5.5 2 8 0 2.5 2 5.5 2 8 0" opacity=".5"/></svg>
-              </span>
-              <h3>Class-adaptive language</h3>
-              <p>JSS1 gets clear, simple English. SS3 gets senior-secondary academic depth. University gets proper
-                terminology. Never oversimplified, never needlessly dense.</p>
-            </article>
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>
-              </span>
-              <h3>Exam-format aware</h3>
-              <p>Question types, structure and difficulty follow the examination you're actually sitting — from object
-                sections to theory questions with proper marking depth.</p>
-            </article>
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>
-              </span>
-              <h3>Weak-area engine</h3>
-              <p>Every attempt feeds a live map of your strong and shaky concepts. One tap turns them into a fresh,
-                targeted practice set.</p>
-            </article>
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-              </span>
-              <h3>Real exam conditions</h3>
-              <p>Timed or untimed. Flag questions. Navigate freely. No answers until submission — or instant feedback
-                in Practice Mode, your choice.</p>
-            </article>
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              </span>
-              <h3>Validated questions</h3>
-              <p>Generated questions pass structural and content checks before you ever see them. Original, accurate,
-                on-level — no recycled question banks.</p>
-            </article>
-            <article class="card card-hover feature-card">
-              <span class="f-icon" aria-hidden="true">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-              </span>
-              <h3>Progress that follows you</h3>
-              <p>Start as a guest — no signup wall. Create an account when you want your history, scores and study
-                sessions synced across devices.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= Exam types ================= -->
-      <section class="landing-section centered" id="exams">
-        <div class="container">
-          <div class="section-heading">
-            <h2>Prepared for your examination</h2>
-            <p>EXAMIVO adapts its question patterns, wording and marking expectations to the exams Nigerian and West
-              African students actually sit.</p>
-          </div>
-          <div class="examtype-cloud stagger">
-            <span class="badge badge-teal">WAEC</span>
-            <span class="badge badge-teal">NECO</span>
-            <span class="badge badge-teal">JAMB / UTME</span>
-            <span class="badge badge-neutral">Common Entrance</span>
-            <span class="badge badge-neutral">School Examination</span>
-            <span class="badge badge-neutral">Class Test</span>
-            <span class="badge badge-neutral">Quiz</span>
-            <span class="badge badge-neutral">Mock Examination</span>
-            <span class="badge badge-violet">Custom</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- ================= CTA ================= -->
-      <section class="cta-banner">
-        <div class="container">
-          <div class="inner">
-            <h2>Your study material. Your exam. Your AI preparation.</h2>
-            <p>Start with a topic, a photo of your notes, or last term's handout. EXAMIVO handles the rest.</p>
-            <button class="btn btn-primary btn-lg" data-start>Start Preparing <span aria-hidden="true">→</span></button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- ================= Footer ================= -->
-    <footer class="landing-footer">
-      <div class="container">
-        <a class="brand" href="index.html">
-          <img src="assets/logo/logo.svg" alt="EXAMIVO" width="150" height="28" />
-        </a>
-        <p>Prepare for the exam, not just the subject.</p>
-        <span class="theme-btn" style="border:none;background:none;pointer-events:none;" aria-hidden="true"></span>
-      </div>
-    </footer>
-  </div>
-
-  <!-- Smooth transition overlay into the app -->
-  <div class="transition-overlay" data-transition aria-hidden="true">
-    <div style="display:grid;place-items:center;">
-      <div data-transition-core></div>
-      <p class="to-label">Entering EXAMIVO…</p>
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-inner">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 1.8rem; height: 1.8rem; border-radius: 6px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; color: #fff;">E</div>
+                    <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em;">EXAMIVO</span>
+                </div>
+                <p style="color: var(--text-dim); font-size: 0.85rem; max-width: 500px;">
+                    Next-generation academic evaluation and intelligence platform powered by Firebase.
+                </p>
+                <p style="color: var(--text-muted); font-size: 0.8rem; letter-spacing: 0.04em;">
+                    Created by <span style="color: #818cf8; font-weight: 700;">Giobari Daniel</span> (Gee Productions)
+                </p>
+            </div>
+        </footer>
     </div>
-  </div>
 
-  <script type="module" src="js/landing.js"></script>
+    <!-- Application Script Entry Point in root (zero subfolder, pure client JS) -->
+    <script type="module" src="./app.js"></script>
 </body>
 </html>
