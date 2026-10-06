@@ -1,6 +1,6 @@
 {
   "name": "EXAMIVO",
-  "description": "EXAMIVO - Ultra-modern AI exam generation, intelligent adaptive testing, and collaborative arena.",
+  "description": "EXAMIVO - Practice exam questions, get simple topic explanations, and create quick study notes.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

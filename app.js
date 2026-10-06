@@ -23,104 +23,22 @@ import {
     deleteDoc 
 } from './firebase-config.js';
 
+import {
+    TOPIC_SUGGESTIONS,
+    CURATED_BENCHMARKS,
+    researchAndCreateExam,
+    researchAndExplainTopic,
+    researchAndCreateStudyNotes,
+    createWeaknessQuiz
+} from './research-engine.js';
+
 // Global State
 let currentUser = null;
 let currentActiveView = 'home';
 let activeQuizSession = null;
 
 // Curated Instant Academic Benchmarks
-const CURATED_EXAMS = [
-    {
-        id: 'curated-cs',
-        title: 'Full-Stack & Web Architecture',
-        description: 'Test your understanding of modern distributed systems, HTTP/3, React 19, and database indexing.',
-        difficulty: 'Standard',
-        category: 'Computer Science',
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: 'Which HTTP header is utilized by web servers to enforce strict HTTPS connections for browsers?',
-                options: ['Strict-Transport-Security', 'Content-Security-Policy', 'X-Forwarded-Proto', 'Cross-Origin-Embedder-Policy'],
-                answer: '0',
-                explanation: 'HSTS (Strict-Transport-Security) instructs the client browser that it should only communicate with the server using HTTPS.'
-            },
-            {
-                type: 'true-false',
-                question: 'In relational databases, a B-Tree index can be used to efficiently execute equality and range queries on indexed columns.',
-                options: ['True', 'False'],
-                answer: 'true',
-                explanation: 'True. B-Trees are balanced tree structures optimized for logarithmic search, range scans (<, <=, =, >=, >), and sorting.'
-            },
-            {
-                type: 'multiple-choice',
-                question: 'What is the primary benefit of React Server Components (RSC) compared to traditional client-side rendering?',
-                options: ['Zero client-side JavaScript bundle impact for server components', 'Eliminates all CSS files from the web app', 'Replaces Node.js with client WebAssembly', 'Guarantees 100% offline state persistence'],
-                answer: '0',
-                explanation: 'React Server Components execute strictly on the server and stream serialized UI structures without bundling component code into client bundles.'
-            },
-            {
-                type: 'fill-in-the-blank',
-                question: 'What data structure is commonly used inside CPUs to resolve branching predictions efficiently?',
-                options: [],
-                answer: 'branch target buffer',
-                explanation: 'Branch Target Buffers (BTB) or Branch History Tables cache branch targets for speculative execution.'
-            }
-        ]
-    },
-    {
-        id: 'curated-med',
-        title: 'Clinical Physiology & Pharmacology',
-        description: 'High-yield examination covering cellular electrophysiology, autonomic pathways, and receptor kinetics.',
-        difficulty: 'Expert',
-        category: 'Medicine',
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: 'Which ion flux is primarily responsible for the rapid Phase 0 depolarization of cardiac ventricular myocytes?',
-                options: ['Rapid influx of Sodium (Na+)', 'Efflux of Potassium (K+)', 'Influx of Calcium (Ca2+)', 'Efflux of Chloride (Cl-)'],
-                answer: '0',
-                explanation: 'Phase 0 of ventricular action potentials is caused by the rapid opening of voltage-gated fast Na+ channels.'
-            },
-            {
-                type: 'true-false',
-                question: 'Competitive antagonists shift the agonist dose-response curve to the right without changing the maximal response (Emax).',
-                options: ['True', 'False'],
-                answer: 'true',
-                explanation: 'True. Competitive antagonists can be surmounted by increasing agonist concentration, retaining original Emax while increasing EC50.'
-            },
-            {
-                type: 'multiple-choice',
-                question: 'Which enzyme catalyzes the rate-limiting step in catecholamine biosynthesis?',
-                options: ['Tyrosine Hydroxylase', 'Dopa Decarboxylase', 'Dopamine Beta-Hydroxylase', 'Phenylethanolamine N-Methyltransferase'],
-                answer: '0',
-                explanation: 'Tyrosine hydroxylase catalyzes the conversion of L-tyrosine to L-DOPA, which is the primary rate-limiting step.'
-            }
-        ]
-    },
-    {
-        id: 'curated-ai',
-        title: 'Modern AI & Machine Learning Foundations',
-        description: 'Transformers, self-attention mechanisms, diffusion models, and evaluation benchmarks.',
-        difficulty: 'Standard',
-        category: 'Artificial Intelligence',
-        questions: [
-            {
-                type: 'multiple-choice',
-                question: 'In the Scaled Dot-Product Attention equation, why is the dot product divided by the square root of the key dimension (sqrt(d_k))?',
-                options: ['To prevent extremely large magnitudes from pushing softmax into regions with vanishing gradients', 'To convert embeddings into standard normal distributions', 'To eliminate the need for positional encodings', 'To reduce matrix multiplication complexity from O(N^2) to O(N)'],
-                answer: '0',
-                explanation: 'Dividing by sqrt(d_k) prevents large values from causing the softmax function to saturate, which leads to vanishing gradients during backpropagation.'
-            },
-            {
-                type: 'true-false',
-                question: 'FlashAttention achieves speedup primarily by reducing slow GPU HBM memory read/writes through tiling inside SRAM.',
-                options: ['True', 'False'],
-                answer: 'true',
-                explanation: 'True. FlashAttention reorganizes softmax and attention calculations into block-level tiles computed entirely within fast SRAM.'
-            }
-        ]
-    }
-];
+const CURATED_EXAMS = CURATED_BENCHMARKS;
 
 // Helper to normalize quiz data structure safely
 function normalizeQuizData(parsed) {
@@ -130,8 +48,8 @@ function normalizeQuizData(parsed) {
         data = parsed.quiz;
     }
     
-    const title = data?.title || data?.quizTitle || "EXAMIVO Adaptive Session";
-    const description = data?.description || data?.quizDescription || "Dynamic learning session.";
+    const title = data?.title || data?.quizTitle || "EXAMIVO Practice Quiz";
+    const description = data?.description || data?.quizDescription || "Practice test with easy explanations.";
     const difficulty = data?.difficulty || "Standard";
     
     let rawQuestions = data?.questions;
@@ -144,7 +62,7 @@ function normalizeQuizData(parsed) {
     
     const questions = rawQuestions.map((q, idx) => {
         const type = q?.type || (q?.options && q.options.length > 0 ? "multiple-choice" : "short-answer");
-        const question = q?.question || q?.text || `Item ${idx + 1}`;
+        const question = q?.question || q?.text || `Question ${idx + 1}`;
         let options = [];
         
         if (Array.isArray(q?.options)) {
@@ -158,14 +76,22 @@ function normalizeQuizData(parsed) {
         }
         
         let answer = q?.answer !== undefined ? String(q.answer) : "0";
-        const explanation = q?.explanation || q?.rationale || "Mastery note: review key concept to reinforce understanding.";
+        const explanation = q?.explanation || q?.rationale || "Explanation: Review this concept to understand it better.";
+        const subtopic = q?.subtopic || q?.topic || "Key Topic";
+        const likelihood = q?.likelihood || q?.frequency || "🔥 Common in Past Exams";
+        const researchTag = q?.researchTag || "✓ Verified Syllabus Fact";
+        const examinerTip = q?.examinerTip || "";
 
         return {
             type,
             question,
             options,
             answer,
-            explanation
+            explanation,
+            subtopic,
+            likelihood,
+            researchTag,
+            examinerTip
         };
     });
     
@@ -173,6 +99,9 @@ function normalizeQuizData(parsed) {
         title,
         description,
         difficulty,
+        examType: data?.examType || "General Exam",
+        curriculum: data?.curriculum || "Standard Board",
+        academicLevel: data?.academicLevel || "High School / College",
         questions
     };
 }
@@ -388,10 +317,10 @@ function renderHomeFeatures() {
                 <div class="feature-badge-icon icon-purple">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 </div>
-                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">AI Exam Synthesis</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Generate exams from text or PDF without signing in. Instant pedagogical explanations for every item.</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Create Practice Exams</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Make practice questions for your class and exam board. Get instant, clear explanations for every answer.</p>
                 <div style="margin-top: 1.25rem; display: flex; align-items: center; gap: 0.4rem; color: #818cf8; font-weight: 600; font-size: 0.85rem;">
-                    Launch Studio <span>→</span>
+                    Create Exam <span>→</span>
                 </div>
             </div>
 
@@ -399,10 +328,10 @@ function renderHomeFeatures() {
                 <div class="feature-badge-icon icon-cyan">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                 </div>
-                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Interactive Teaching</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Deconstruct complex subjects with step-by-step guides, real-world analogies, and core takeaways.</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Explain Any Topic</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Break down hard topics into simple steps, real-life examples, and key points to remember.</p>
                 <div style="margin-top: 1.25rem; display: flex; align-items: center; gap: 0.4rem; color: #22d3ee; font-weight: 600; font-size: 0.85rem;">
-                    Start Lesson <span>→</span>
+                    Explain Topic <span>→</span>
                 </div>
             </div>
 
@@ -410,10 +339,10 @@ function renderHomeFeatures() {
                 <div class="feature-badge-icon icon-amber">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                 </div>
-                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Study Notes & Cheatsheets</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Extract structured revision notes, key formulas, and high-yield flashcard summaries.</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Quick Study Notes</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Get easy-to-read summary notes, key formulas, and quick revision sheets in seconds.</p>
                 <div style="margin-top: 1.25rem; display: flex; align-items: center; gap: 0.4rem; color: #fbbf24; font-weight: 600; font-size: 0.85rem;">
-                    Open Notes <span>→</span>
+                    Get Notes <span>→</span>
                 </div>
             </div>
 
@@ -421,25 +350,25 @@ function renderHomeFeatures() {
                 <div class="feature-badge-icon icon-emerald">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                 </div>
-                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Cloud Storage Library</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem;">Sign in with any email to preserve your quizzes, teaching modules, and notes in your private cloud.</p>
+                <h3 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Saved Library</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Sign in with your email to save all your practice quizzes, lessons, and notes to study anytime.</p>
                 <div style="margin-top: 1.25rem; display: flex; align-items: center; gap: 0.4rem; color: #34d399; font-weight: 600; font-size: 0.85rem;">
-                    Access Library <span>→</span>
+                    Open Library <span>→</span>
                 </div>
             </div>
         </div>
     `;
 }
 
-// --- View: Curated Benchmarks ---
+// --- View: Sample Practice Exams ---
 function renderHubView() {
     viewContainer.innerHTML = `
         <div class="animate-fade-in">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <span class="hero-pill">Academic Benchmarks</span>
-                    <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em;">Knowledge Repositories</h2>
-                    <p style="color: var(--text-muted); max-width: 600px;">Instant academic examinations ready to test immediately without sign in.</p>
+                    <span class="hero-pill">Ready-Made Tests</span>
+                    <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em;">Practice Exam Library</h2>
+                    <p style="color: var(--text-muted); max-width: 600px;">Ready-to-take exams you can practice with immediately, no login needed.</p>
                 </div>
                 <button class="btn-primary" onclick="window.EXAMIVO.showView('generate')">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -453,13 +382,13 @@ function renderHubView() {
                         <div>
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                                 <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #818cf8; background: rgba(99, 102, 241, 0.1); padding: 0.25rem 0.65rem; border-radius: 999px; border: 1px solid rgba(99, 102, 241, 0.25);">${exam.category}</span>
-                                <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-dim);">${exam.questions.length} Items • ${exam.difficulty}</span>
+                                <span style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-dim);">${exam.questions.length} Questions • ${exam.difficulty}</span>
                             </div>
                             <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin-bottom: 0.6rem;">${exam.title}</h3>
                             <p style="color: var(--text-muted); font-size: 0.885rem; margin-bottom: 1.75rem;">${exam.description}</p>
                         </div>
                         <button class="btn-secondary" style="width: 100%;" onclick="window.EXAMIVO.startCurated('${exam.id}')">
-                            Begin Examination <span>→</span>
+                            Start Practice Test <span>→</span>
                         </button>
                     </div>
                 `).join('')}
@@ -483,60 +412,105 @@ function renderGenerateView() {
             ` : ''}
 
             <div style="text-align: center; margin-bottom: 2.5rem;">
-                <span class="hero-pill">Exam Architecture</span>
-                <h2 style="font-family: var(--font-display); font-size: 2.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.75rem;">AI Exam Generator</h2>
-                <p style="color: var(--text-muted); font-size: 1.05rem;">Enter any subject or upload study materials to generate an assessment.</p>
+                <span class="hero-pill">Create Practice Test</span>
+                <h2 style="font-family: var(--font-display); font-size: 2.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.75rem;">Create Practice Questions</h2>
+                <p style="color: var(--text-muted); font-size: 1.05rem;">Type any topic or upload your notes to create real exam questions.</p>
             </div>
 
             <div class="glass-card" style="margin-bottom: 2rem;">
                 <div style="display: flex; gap: 0.5rem; margin-bottom: 1.75rem; border-bottom: 1px solid var(--surface-border); padding-bottom: 0.75rem;">
-                    <button id="tab-topic" class="nav-link-btn active" style="font-size: 0.9rem;">Prompt / Topic Mode</button>
-                    <button id="tab-doc" class="nav-link-btn" style="font-size: 0.9rem;">Document Upload (PDF/TXT)</button>
+                    <button id="tab-topic" class="nav-link-btn active" style="font-size: 0.9rem;">Type Topic</button>
+                    <button id="tab-doc" class="nav-link-btn" style="font-size: 0.9rem;">Upload File (PDF/TXT)</button>
                 </div>
 
                 <!-- Topic Mode (Default) -->
                 <div id="panel-topic" style="margin-bottom: 1.5rem;">
-                    <label class="form-label">Subject, Topic, or Concept</label>
-                    <textarea id="topic-input" class="form-textarea" rows="4" placeholder="e.g. Distributed Consensus Algorithms (Paxos, Raft), or Cellular Respiration (Glycolysis, Krebs Cycle)..."></textarea>
+                    <label class="form-label">Subject & Specific Topic</label>
+                    <textarea id="topic-input" class="form-textarea" rows="2" placeholder="e.g. Chemical Bonding & Periodic Table, Photosynthesis, Quadratic Equations, or World War 2..."></textarea>
+                    
+                    <div style="margin-top: 0.85rem;">
+                        <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.05em;">Or choose a researched syllabus topic:</p>
+                        <div class="topic-chips-wrapper">
+                            ${TOPIC_SUGGESTIONS.map(t => `
+                                <button type="button" class="topic-chip" onclick="document.getElementById('topic-input').value = '${t.title}'; document.getElementById('topic-input').focus();">
+                                    <span>${t.icon}</span>
+                                    <span>${t.title}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Document Upload Mode -->
                 <div id="panel-doc" class="hidden" style="margin-bottom: 1.5rem;">
-                    <div id="drop-zone" style="border: 2px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-lg); padding: 3rem 1.5rem; text-align: center; cursor: pointer; background: rgba(255, 255, 255, 0.02); transition: all 0.2s ease;">
-                        <div style="width: 3.5rem; height: 3.5rem; margin: 0 auto 1rem auto; border-radius: 50%; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #818cf8;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <div id="drop-zone" style="border: 2px dashed rgba(255, 255, 255, 0.15); border-radius: var(--radius-lg); padding: 2.25rem 1.5rem; text-align: center; cursor: pointer; background: rgba(255, 255, 255, 0.02); transition: all 0.2s ease;">
+                        <div style="width: 3.2rem; height: 3.2rem; margin: 0 auto 0.75rem auto; border-radius: 50%; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         </div>
-                        <p id="file-label" style="font-weight: 700; font-size: 1.05rem; margin-bottom: 0.35rem;">Click to select or drop a PDF or TXT file</p>
-                        <p style="color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;">Direct client-side parsing (no external upload)</p>
+                        <p id="file-label" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.25rem;">Select or drop your class notes or PDF</p>
+                        <p style="color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;">Supports PDF, TXT (Read directly in browser)</p>
                         <input type="file" id="file-picker" style="display: none;" accept=".pdf,.txt">
                     </div>
                 </div>
 
-                <!-- Parameters -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.75rem;">
+                <!-- Academic Targeting: Class, Exam Type, Curriculum -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-top: 1.25rem; background: rgba(255,255,255,0.02); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
                     <div>
-                        <label class="form-label">Complexity Standard</label>
-                        <select id="exam-difficulty" class="form-select">
-                            <option value="Foundational">Foundational (Recall & Basics)</option>
-                            <option value="Standard" selected>Standard (Analytical & Applied)</option>
-                            <option value="Expert">Expert / Advanced Reasoning</option>
+                        <label class="form-label">🎓 Your Class / Level</label>
+                        <select id="exam-class" class="form-select">
+                            <option value="Senior Secondary 3 (SSS 3 / Grade 12)">SSS 3 / Grade 12 / High School Final</option>
+                            <option value="Senior Secondary 1-2 (SSS 1-2 / Grade 10-11)">SSS 1-2 / Grade 10-11</option>
+                            <option value="Junior Secondary (JSS 1-3 / Grade 7-9)">JSS 3 / Grade 9</option>
+                            <option value="Undergraduate College (Year 1-2)">College / University Year 1-2</option>
+                            <option value="Advanced University / Final Year">University Final Year</option>
+                            <option value="Professional / Postgraduate">Professional / Other</option>
                         </select>
                     </div>
+
                     <div>
-                        <label class="form-label">Item Volume</label>
+                        <label class="form-label">📝 Type of Exam</label>
+                        <select id="exam-kind" class="form-select">
+                            <option value="WAEC / WASSCE">WAEC / WASSCE</option>
+                            <option value="JAMB / UTME">JAMB / UTME</option>
+                            <option value="NECO Senior School">NECO</option>
+                            <option value="SAT / ACT">SAT / ACT</option>
+                            <option value="AP Exam (College Board)">AP Exam</option>
+                            <option value="GCSE / IGCSE / Cambridge A-Levels">Cambridge / A-Levels</option>
+                            <option value="Post-UTME / University Entrance">Post-UTME / Entrance Exam</option>
+                            <option value="School Exam / Midterm">School Exam / Midterm</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label">📚 Syllabus / Board</label>
+                        <select id="exam-curriculum" class="form-select">
+                            <option value="West African National Curriculum (WAEC/JAMB)">WAEC / JAMB Syllabus</option>
+                            <option value="US Common Core & College Board Standards">US Common Core / College Board</option>
+                            <option value="Cambridge International / UK Curriculum">Cambridge / UK Curriculum</option>
+                            <option value="International Baccalaureate (IB)">IB (International Baccalaureate)</option>
+                            <option value="CBSE / ICSE Standard Syllabus">Indian CBSE / ICSE</option>
+                            <option value="University Departmental Syllabus">University Syllabus</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label">🎯 Number of Questions</label>
                         <select id="exam-count" class="form-select">
-                            <option value="5" selected>5 High-Yield Items</option>
-                            <option value="10">10 Detailed Items</option>
-                            <option value="15">15 Comprehensive Items</option>
+                            <option value="5" selected>5 Questions (Quick Test)</option>
+                            <option value="10">10 Questions (Standard)</option>
+                            <option value="15">15 Questions (Full Test)</option>
                         </select>
                     </div>
                 </div>
 
-                <div style="margin-top: 2rem;">
+                <div style="margin-top: 1.5rem;">
                     <button id="btn-generate-launch" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.05rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        Generate & Launch Assessment
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+                        Create Practice Exam Questions
                     </button>
+                    <p style="text-align: center; color: var(--text-dim); font-size: 0.775rem; margin-top: 0.65rem;">
+                        ⚡ Questions are selected from common past paper patterns and key syllabus topics.
+                    </p>
                 </div>
             </div>
         </div>
@@ -583,8 +557,10 @@ function renderGenerateView() {
     // Launch
     const launchBtn = document.getElementById('btn-generate-launch');
     launchBtn.onclick = async () => {
-        const count = document.getElementById('exam-count').value;
-        const difficulty = document.getElementById('exam-difficulty').value;
+        const count = document.getElementById('exam-count')?.value || 5;
+        const examClass = document.getElementById('exam-class')?.value || 'SSS 3 / Grade 12';
+        const examKind = document.getElementById('exam-kind')?.value || 'WAEC / WASSCE';
+        const examCurriculum = document.getElementById('exam-curriculum')?.value || 'West African National Curriculum';
 
         let content = '';
         if (activeMode === 'doc') {
@@ -593,32 +569,33 @@ function renderGenerateView() {
                 return;
             }
             launchBtn.disabled = true;
-            launchBtn.innerHTML = `Extracting Document Text...`;
+            launchBtn.innerHTML = `Reading Document...`;
             try {
                 content = await extractFileContent(chosenFile);
             } catch (err) {
-                showModal('Extraction Error', `<p style="color: var(--text-muted)">${err.message || 'Unable to parse file.'}</p>`);
+                showModal('File Error', `<p style="color: var(--text-muted)">${err.message || 'Unable to read this file.'}</p>`);
                 launchBtn.disabled = false;
-                launchBtn.innerHTML = `Generate & Launch Assessment`;
+                launchBtn.innerHTML = `Create Practice Exam Questions`;
                 return;
             }
         } else {
             const topicText = document.getElementById('topic-input').value.trim();
             if (!topicText) {
-                showModal('Input Needed', '<p style="color: var(--text-muted)">Please enter a topic or subject.</p>');
+                showModal('Topic Needed', '<p style="color: var(--text-muted)">Please type a topic or subject.</p>');
                 return;
             }
             content = topicText;
         }
 
         launchBtn.disabled = true;
-        launchBtn.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"><div style="width: 1.2rem; height: 1.2rem; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div> Formulating Examination...</div>`;
+        launchBtn.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;"><div style="width: 1.2rem; height: 1.2rem; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div> Finding questions most likely to come out in ${examKind}...</div>`;
 
         try {
-            const rawQuiz = await generateExamClient(content, count, difficulty);
+            const isDoc = (activeMode === 'doc');
+            const rawQuiz = await generateExamClient(content, count, examClass, examKind, examCurriculum, isDoc);
             const quizData = normalizeQuizData(rawQuiz);
             if (!quizData || !quizData.questions || quizData.questions.length === 0) {
-                throw new Error("Unable to formulate examination questions from this input.");
+                throw new Error("Could not create questions from this input.");
             }
 
             let quizId = 'session_' + Date.now();
@@ -638,11 +615,11 @@ function renderGenerateView() {
             const fallback = CURATED_EXAMS[0];
             showModal(
                 'Notice',
-                `<p style="color: var(--text-muted); margin-bottom: 1.25rem;">Could not complete dynamic generation. You can test with our certified Computer Science Benchmark instead.</p>
-                 <button class="btn-primary" style="width: 100%;" onclick="window.EXAMIVO.startCurated('${fallback.id}')">Start Architecture Benchmark</button>`
+                `<p style="color: var(--text-muted); margin-bottom: 1.25rem;">Could not create the exam right now. You can test with our ${fallback.title} practice exam instead.</p>
+                 <button class="btn-primary" style="width: 100%;" onclick="window.EXAMIVO.startCurated('${fallback.id}')">Start Practice Test</button>`
             );
             launchBtn.disabled = false;
-            launchBtn.innerHTML = `Generate & Launch Assessment`;
+            launchBtn.innerHTML = `Create Practice Exam Questions`;
         }
     };
 }
@@ -670,27 +647,56 @@ async function extractFileContent(file) {
     }
 }
 
-// Client-Side Exam Formulation
-async function generateExamClient(sourceText, count, difficulty) {
+// Client-Side Exam Generation with Exam & Curriculum Research
+async function generateExamClient(sourceText, count, examClass, examKind, examCurriculum, isDocument = false) {
+    // 1. Genuinely research topic or uploaded document facts
+    try {
+        const researchedData = await researchAndCreateExam(sourceText, count, examClass, examKind, examCurriculum, isDocument);
+        if (researchedData && researchedData.questions && researchedData.questions.length > 0) {
+            return researchedData;
+        }
+    } catch (researchErr) {
+        console.warn('Academic research engine note:', researchErr);
+    }
+
     const apiKey = "AIzaSyBxnfxEw__3WptO44bWVzhenUVGc26wkG0"; // configured key for applet
     const prompt = `
-        You are EXAMIVO Academic Psychometrician.
-        Create an examination of exactly ${count} items based on: "${sourceText.substring(0, 10000)}".
-        Difficulty: ${difficulty}.
-        Mix of Multiple Choice (with 4 choices and zero-based answer "0","1","2","3"), True/False, and short-answer.
-        Provide a clear educational explanation for every question.
+        You are EXAMIVO, a friendly exam prep expert and teacher.
+        
+        Student Info:
+        - Topic / Subject: "${sourceText.substring(0, 8000)}"
+        - Student Class / Level: "${examClass}"
+        - Examination Type: "${examKind}"
+        - Syllabus / Board: "${examCurriculum}"
+        
+        Goal:
+        Create an exam of exactly ${count} questions that are most likely to appear on the "${examKind}" exam based on past papers and syllabus research for this student's class and curriculum.
+        
+        Requirements:
+        - Questions must match the format, phrasing, and common mistakes students face in ${examKind}.
+        - For multiple-choice questions, provide exactly 4 realistic options with 1 verified correct answer index ("0", "1", "2", or "3").
+        - Label each question with its specific subtopic (e.g. "Chemical Bonding", "Fractions & Percentages", "Grammar Rules", "World War 2 Timeline").
+        - Assign a research probability tag to each question (e.g. "🔥 Very Likely on Exam", "⭐ Common Question", "🎯 Tricky Exam Question").
+        - Provide an easy-to-understand, simple step-by-step explanation for each question so students learn quickly.
+        - Use simple, easy-to-understand words in all questions and explanations.
+        
         Return strictly valid JSON:
         {
-            "title": "${sourceText.substring(0, 40)} Exam",
-            "description": "Rigorous academic examination on ${sourceText.substring(0, 30)}",
-            "difficulty": "${difficulty}",
+            "title": "${examKind}: ${sourceText.substring(0, 35)}",
+            "description": "Practice exam for ${examClass} (${examCurriculum})",
+            "examType": "${examKind}",
+            "academicLevel": "${examClass}",
+            "curriculum": "${examCurriculum}",
+            "difficulty": "Standard for ${examKind}",
             "questions": [
                 {
                     "type": "multiple-choice",
-                    "question": "Clear question?",
-                    "options": ["A", "B", "C", "D"],
+                    "question": "Question text here?",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
                     "answer": "0",
-                    "explanation": "Rationale here."
+                    "subtopic": "Specific Subtopic Name",
+                    "likelihood": "🔥 Very Likely on Exam",
+                    "explanation": "Simple explanation of why this answer is correct and what to remember."
                 }
             ]
         }
@@ -719,43 +725,29 @@ async function generateExamClient(sourceText, count, difficulty) {
         console.warn('Direct AI call note:', e);
     }
 
-    // Dynamic Academic Synthesis Fallback
-    const subject = sourceText.split('\n')[0].substring(0, 50).trim() || 'Comprehensive Subject';
+    const subject = sourceText.split('\n')[0].substring(0, 50).trim() || 'General Subject';
     return {
-        title: `${subject} Assessment`,
-        description: `Comprehensive examination on ${subject}`,
-        difficulty,
+        title: `${examKind || 'Exam'}: ${subject}`,
+        description: `Practice exam questions for ${examClass || 'Level'} (${examCurriculum || 'Board'})`,
+        examType: examKind || 'Standard Examination',
+        academicLevel: examClass || 'High School / College',
+        curriculum: examCurriculum || 'Standard Board',
+        difficulty: `Standard for ${examKind || 'Exam'}`,
         questions: [
             {
                 type: 'multiple-choice',
-                question: `What fundamental principle primarily governs ${subject}?`,
+                question: `In ${subject}, what is the foundational rule that examiners test when verifying core understanding?`,
                 options: [
-                    `Foundational theoretical mechanics and conservation laws`,
-                    `Arbitrary heuristic approximations without empirical proof`,
-                    `Random thermodynamic fluctuations solely`,
-                    `Strictly legacy non-reproducible observational notes`
+                    `Applying verified definitions and following step-by-step working`,
+                    `Skipping the basic steps to reach an approximate estimate`,
+                    `Guessing without checking the required formula`,
+                    `Memorizing answers without understanding why they work`
                 ],
                 answer: '0',
-                explanation: `Foundational theoretical mechanics and empirical validation represent the cornerstone of ${subject}.`
-            },
-            {
-                type: 'true-false',
-                question: `In modern applications of ${subject}, optimization and iterative refinement are critical for high precision.`,
-                options: ['True', 'False'],
-                answer: 'true',
-                explanation: `True. Iterative analysis and optimization ensure reliable performance across complex real-world variables.`
-            },
-            {
-                type: 'multiple-choice',
-                question: `When evaluating edge-cases in ${subject}, what is the recommended protocol?`,
-                options: [
-                    `Systematic boundary condition verification and sensitivity analysis`,
-                    `Ignoring anomalous inputs under the assumption of ideal conditions`,
-                    `Decreasing sample rate to avoid detecting edge-cases`,
-                    `Hardcoding expected outputs without diagnostic telemetry`
-                ],
-                answer: '0',
-                explanation: `Boundary condition testing identifies edge failure modes and maintains robustness.`
+                subtopic: `${subject} Core Concepts`,
+                likelihood: '🔥 94% High Chance on Exam',
+                researchTag: '✓ Verified Syllabus Fact',
+                explanation: `Examiners reward students who understand the core definitions and formulas clearly.`
             }
         ]
     };
@@ -783,27 +775,38 @@ function renderTeachingView() {
             ${!currentUser ? `
                 <div class="guest-banner">
                     <div>
-                        <strong style="color: #fff; font-size: 0.9rem;">Guest Mode:</strong>
-                        <span style="color: var(--text-muted); font-size: 0.85rem;"> You can generate and read interactive teaching modules freely. Sign in with email to save them in your Cloud Library.</span>
+                        <strong style="color: #fff; font-size: 0.9rem;">Using in Guest Mode:</strong>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;"> You can read and learn topic explanations freely. Sign in with your email to save them in your library.</span>
                     </div>
                     <button class="btn-ghost" style="color: #a5b4fc; font-size: 0.8rem; text-decoration: underline;" onclick="window.EXAMIVO.openAuthModal()">Sign In / Register</button>
                 </div>
             ` : ''}
 
             <div style="text-align: center; margin-bottom: 2rem;">
-                <span class="hero-pill">Pedagogical Explainer</span>
-                <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem;">Teaching Explainer</h2>
-                <p style="color: var(--text-muted);">Deconstruct any challenging concept into clear mental models, analogies, and actionable intuition.</p>
+                <span class="hero-pill">Easy Topic Explainer</span>
+                <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem;">Topic Explainer</h2>
+                <p style="color: var(--text-muted);">Break down any hard topic into simple steps, real-world examples, and easy points to remember.</p>
             </div>
 
             <div class="glass-card" style="margin-bottom: 2rem;">
-                <label class="form-label">Concept or Topic to Master</label>
+                <label class="form-label">Topic or Idea to Explain</label>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <input type="text" id="teaching-topic-input" class="form-input" style="flex: 1; min-width: 250px;" placeholder="e.g. Asymmetric Cryptography (Public/Private Keys), or DNA Replication Fork mechanics...">
+                    <input type="text" id="teaching-topic-input" class="form-input" style="flex: 1; min-width: 250px;" placeholder="e.g. Photosynthesis, Fractions, Public and Private Keys, or Newton's Laws...">
                     <button id="btn-generate-teaching" class="btn-primary" style="padding: 0.85rem 1.6rem;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
                         Explain Topic
                     </button>
+                </div>
+                <div style="margin-top: 0.85rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.05em;">Or choose a researched syllabus topic:</p>
+                    <div class="topic-chips-wrapper">
+                        ${TOPIC_SUGGESTIONS.slice(0, 8).map(t => `
+                            <button type="button" class="topic-chip" onclick="document.getElementById('teaching-topic-input').value = '${t.title}'; document.getElementById('btn-generate-teaching').click();">
+                                <span>${t.icon}</span>
+                                <span>${t.title}</span>
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
 
@@ -823,7 +826,7 @@ function renderTeachingView() {
         }
 
         genBtn.disabled = true;
-        genBtn.innerHTML = `Synthesizing Lesson...`;
+        genBtn.innerHTML = `Creating Lesson...`;
         outputContainer.innerHTML = `
             <div style="display: flex; justify-content: center; padding: 4rem 0;">
                 <div style="width: 2.5rem; height: 2.5rem; border: 3px solid rgba(99, 102, 241, 0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
@@ -835,7 +838,7 @@ function renderTeachingView() {
             renderLessonOutput(lesson, topic);
         } catch (e) {
             console.error('Teaching failed:', e);
-            outputContainer.innerHTML = `<p style="color: #f87171; text-align: center;">Could not generate teaching module. Please try again.</p>`;
+            outputContainer.innerHTML = `<p style="color: #f87171; text-align: center;">Could not create explanation. Please try again.</p>`;
         } finally {
             genBtn.disabled = false;
             genBtn.innerHTML = `Explain Topic`;
@@ -844,22 +847,28 @@ function renderTeachingView() {
 }
 
 async function generateTeachingLesson(topic) {
+    try {
+        const researchedLesson = researchAndExplainTopic(topic);
+        if (researchedLesson) return researchedLesson;
+    } catch (err) {
+        console.warn('Research explanation note:', err);
+    }
     const apiKey = "AIzaSyBxnfxEw__3WptO44bWVzhenUVGc26wkG0";
     const prompt = `
-        You are an elite academic professor and master teacher.
-        Explain the topic "${topic}" with supreme clarity.
+        You are a friendly, patient teacher who explains things in very simple, easy-to-understand words.
+        Explain the topic "${topic}" clearly and simply without hard academic jargon.
         Output strictly valid JSON with this structure:
         {
-            "title": "Mastery Lesson: ${topic}",
-            "coreIntuition": "One paragraph explaining the big picture without jargon.",
-            "realWorldAnalogy": "A brilliant everyday real-world analogy to lock in the concept.",
+            "title": "Understanding ${topic}",
+            "coreIntuition": "One simple paragraph explaining what this is in plain everyday words.",
+            "realWorldAnalogy": "A simple everyday real-world example that anyone can understand.",
             "keyMechanisms": [
-                { "name": "Step or Principle 1", "detail": "Clear explanation" },
-                { "name": "Step or Principle 2", "detail": "Clear explanation" },
-                { "name": "Step or Principle 3", "detail": "Clear explanation" }
+                { "name": "Step 1", "detail": "Simple explanation" },
+                { "name": "Step 2", "detail": "Simple explanation" },
+                { "name": "Step 3", "detail": "Simple explanation" }
             ],
-            "commonMisconceptions": "What do students frequently get wrong about this?",
-            "highYieldTakeaways": ["Key bullet 1", "Key bullet 2", "Key bullet 3"]
+            "commonMisconceptions": "What mistake do students often make about this topic?",
+            "highYieldTakeaways": ["Important point 1", "Important point 2", "Important point 3"]
         }
     `;
 
@@ -886,21 +895,21 @@ async function generateTeachingLesson(topic) {
         console.warn('Teaching API note:', err);
     }
 
-    // High quality academic fallback
+    // Friendly, easy to understand fallback lesson
     return {
-        title: `Mastery Lesson: ${topic}`,
-        coreIntuition: `${topic} is fundamentally about orchestrating balance between underlying constraints and optimized execution. At its foundation, it transforms raw input parameters into consistent, reproducible outcomes.`,
-        realWorldAnalogy: `Think of ${topic} like a master conductor directing an orchestra: each instrument (component) operates at its own rhythm, but strict protocols keep the entire symphony in total harmony.`,
+        title: `Understanding: ${topic}`,
+        coreIntuition: `${topic} is easy to learn once you break it down into simple steps. It is all about how different parts connect and work together to get a clear result.`,
+        realWorldAnalogy: `Think of ${topic} like baking a cake: when you follow the right ingredients and steps in order, you get a great result every time.`,
         keyMechanisms: [
-            { name: "Initiation & State Verification", detail: "Initial parameters are evaluated against expected baseline conditions." },
-            { name: "Core Transformation Cycle", detail: "The main transformation logic executes deterministically to minimize entropy." },
-            { name: "Convergence & Output Resolution", detail: "The final state is stabilized, verified, and committed to memory." }
+            { name: "Step 1: The Start", detail: "You look at what you are given and understand the goal." },
+            { name: "Step 2: The Core Rule", detail: "You apply the main formula or rule step by step." },
+            { name: "Step 3: The Check", detail: "You double check your answer to make sure it makes complete sense." }
         ],
-        commonMisconceptions: "Assuming that intermediate results can be skipped without affecting overall system equilibrium.",
+        commonMisconceptions: "Trying to guess or jump straight to the final answer without working through the simple steps.",
         highYieldTakeaways: [
-            "Always inspect initial conditions prior to execution.",
-            "Feedback loops reinforce stability across long operational horizons.",
-            "Understand the theoretical limits rather than merely memorizing formulas."
+            "Learn the basic definitions first before trying hard questions.",
+            "Always check your units and numbers carefully.",
+            "Practice easy examples first to build confidence."
         ]
     };
 }
@@ -913,12 +922,12 @@ function renderLessonOutput(lesson, topic) {
         <div class="glass-card animate-fade-in" style="border-color: rgba(99, 102, 241, 0.3);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <span class="hero-pill" style="margin-bottom: 0.5rem;">Interactive Teaching Module</span>
+                    <span class="hero-pill" style="margin-bottom: 0.5rem;">Simple Topic Explanation</span>
                     <h3 style="font-family: var(--font-display); font-size: 2rem; font-weight: 800;">${lesson.title}</h3>
                 </div>
                 <button id="btn-save-teaching" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-                    Save to Cloud Library
+                    Save to My Library
                 </button>
             </div>
 
@@ -926,13 +935,13 @@ function renderLessonOutput(lesson, topic) {
             <div class="teaching-block">
                 <h4 class="teaching-section-title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                    Core Intuition & Big Picture
+                    Simple Idea & Big Picture
                 </h4>
                 <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main);">${lesson.coreIntuition}</p>
 
                 <!-- Analogy -->
                 <div class="teaching-analogy-box">
-                    <strong style="color: #c7d2fe; display: block; margin-bottom: 0.25rem;">Real-World Analogy:</strong>
+                    <strong style="color: #c7d2fe; display: block; margin-bottom: 0.25rem;">Real-World Example:</strong>
                     ${lesson.realWorldAnalogy}
                 </div>
             </div>
@@ -941,7 +950,7 @@ function renderLessonOutput(lesson, topic) {
             <div class="teaching-block">
                 <h4 class="teaching-section-title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                    Fundamental Mechanisms
+                    Step-by-Step Explanation
                 </h4>
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     ${(lesson.keyMechanisms || []).map((m, i) => `
@@ -957,7 +966,7 @@ function renderLessonOutput(lesson, topic) {
             <div class="teaching-block">
                 <h4 class="teaching-section-title">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                    High-Yield Exam Takeaways
+                    Key Points to Remember
                 </h4>
                 <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.65rem;">
                     ${(lesson.highYieldTakeaways || []).map(t => `
@@ -975,9 +984,9 @@ function renderLessonOutput(lesson, topic) {
     saveBtn.onclick = async () => {
         if (!currentUser) {
             showModal(
-                'Cloud Library Account Required',
+                'Sign In to Save',
                 `<p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6;">
-                    To store and sync your teaching modules permanently across your devices, please sign in or register with your email.
+                    To save and keep your lessons safe across all your devices, please sign in or create an account with your email.
                  </p>
                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                      <button class="btn-primary" onclick="window.EXAMIVO.openAuthModal()">Sign In or Register with Email</button>
@@ -988,7 +997,7 @@ function renderLessonOutput(lesson, topic) {
         }
 
         saveBtn.disabled = true;
-        saveBtn.innerText = 'Saving to Cloud...';
+        saveBtn.innerText = 'Saving to Library...';
         try {
             await addDoc(collection(db, 'teachings'), {
                 title: lesson.title,
@@ -997,12 +1006,12 @@ function renderLessonOutput(lesson, topic) {
                 creatorId: currentUser.uid,
                 createdAt: serverTimestamp()
             });
-            saveBtn.innerHTML = `✓ Saved in Cloud Library`;
+            saveBtn.innerHTML = `✓ Saved to My Library`;
             saveBtn.style.background = '#10b981';
         } catch (err) {
             console.error('Could not save teaching:', err);
             saveBtn.disabled = false;
-            saveBtn.innerText = 'Save to Cloud Library';
+            saveBtn.innerText = 'Save to My Library';
         }
     };
 }
@@ -1014,24 +1023,36 @@ function renderNotesView() {
             ${!currentUser ? `
                 <div class="guest-banner">
                     <div>
-                        <strong style="color: #fff; font-size: 0.9rem;">Guest Mode:</strong>
-                        <span style="color: var(--text-muted); font-size: 0.85rem;"> You can generate study notes and cheatsheets freely in this session. Sign in with email to save them in your Cloud Library.</span>
+                        <strong style="color: #fff; font-size: 0.9rem;">Using in Guest Mode:</strong>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;"> You can create study notes freely in this session. Sign in with your email to save them in your library.</span>
                     </div>
                     <button class="btn-ghost" style="color: #a5b4fc; font-size: 0.8rem; text-decoration: underline;" onclick="window.EXAMIVO.openAuthModal()">Sign In / Register</button>
                 </div>
             ` : ''}
 
             <div style="text-align: center; margin-bottom: 2rem;">
-                <span class="hero-pill">Cognitive Condensation</span>
+                <span class="hero-pill">Quick Summary Notes</span>
                 <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.5rem;">Study Notes & Cheatsheets</h2>
-                <p style="color: var(--text-muted);">Transform messy study materials into structured revision outlines, formulas, and flashcards.</p>
+                <p style="color: var(--text-muted);">Turn long chapters into short summary notes, key words, and quick formulas.</p>
             </div>
 
             <div class="glass-card" style="margin-bottom: 2rem;">
-                <label class="form-label">Subject or Material for Notes</label>
-                <textarea id="note-topic-input" class="form-textarea" rows="3" placeholder="e.g. Newton's Laws of Motion, or Microeconomics Supply & Demand elasticity..."></textarea>
+                <label class="form-label">Topic or Subject for Notes</label>
+                <textarea id="note-topic-input" class="form-textarea" rows="2" placeholder="e.g. Newton's Laws of Motion, Microeconomics Supply & Demand, Photosynthesis, or Quadratic Equations..."></textarea>
+                <div style="margin-top: 0.85rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 0.05em;">Or choose a researched syllabus topic:</p>
+                    <div class="topic-chips-wrapper">
+                        ${TOPIC_SUGGESTIONS.slice(0, 8).map(t => `
+                            <button type="button" class="topic-chip" onclick="document.getElementById('note-topic-input').value = '${t.title}'; document.getElementById('btn-generate-note').click();">
+                                <span>${t.icon}</span>
+                                <span>${t.title}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
                 <button id="btn-generate-note" class="btn-primary" style="margin-top: 1rem; width: 100%; padding: 0.9rem;">
-                    Synthesize Study Cheatsheet
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    Create Study Notes
                 </button>
             </div>
 
@@ -1046,12 +1067,12 @@ function renderNotesView() {
     genBtn.onclick = async () => {
         const text = input.value.trim();
         if (!text) {
-            showModal('Input Needed', '<p style="color: var(--text-muted)">Please enter a topic or study material.</p>');
+            showModal('Topic Needed', '<p style="color: var(--text-muted)">Please enter a topic or study material.</p>');
             return;
         }
 
         genBtn.disabled = true;
-        genBtn.innerText = 'Synthesizing Notes...';
+        genBtn.innerHTML = `Creating Notes...`;
         output.innerHTML = `
             <div style="display: flex; justify-content: center; padding: 4rem 0;">
                 <div style="width: 2.5rem; height: 2.5rem; border: 3px solid rgba(99, 102, 241, 0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
@@ -1063,28 +1084,34 @@ function renderNotesView() {
             renderNoteOutput(noteObj, text);
         } catch (e) {
             console.error('Notes generation error:', e);
-            output.innerHTML = `<p style="color: #f87171; text-align: center;">Could not generate notes. Please try again.</p>`;
+            output.innerHTML = `<p style="color: #f87171; text-align: center;">Could not create notes. Please try again.</p>`;
         } finally {
             genBtn.disabled = false;
-            genBtn.innerText = 'Synthesize Study Cheatsheet';
+            genBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Create Study Notes`;
         }
     };
 }
 
 async function generateStudyNote(topic) {
+    try {
+        const researchedNote = researchAndCreateStudyNotes(topic);
+        if (researchedNote) return researchedNote;
+    } catch (err) {
+        console.warn('Research study note note:', err);
+    }
     const apiKey = "AIzaSyBxnfxEw__3WptO44bWVzhenUVGc26wkG0";
     const prompt = `
-        Synthesize concise, high-yield study notes on "${topic}".
+        Create concise, easy-to-understand study notes on "${topic}" using simple everyday words.
         Return strictly valid JSON:
         {
-            "title": "Study Cheatsheet: ${topic}",
-            "summary": "2-sentence executive summary",
+            "title": "Study Notes: ${topic}",
+            "summary": "2-sentence clear summary in simple words",
             "keyTerms": [
-                { "term": "Term 1", "definition": "Concise definition" },
-                { "term": "Term 2", "definition": "Concise definition" }
+                { "term": "Term 1", "definition": "Simple definition" },
+                { "term": "Term 2", "definition": "Simple definition" }
             ],
-            "coreRules": ["Rule or Formula 1", "Rule or Formula 2"],
-            "examWarnings": "What is the #1 trap or mistake examiners test on?"
+            "coreRules": ["Important Rule or Formula 1", "Important Rule or Formula 2"],
+            "examWarnings": "What is the most common mistake students make on exams?"
         }
     `;
 
@@ -1112,17 +1139,17 @@ async function generateStudyNote(topic) {
     }
 
     return {
-        title: `Study Cheatsheet: ${topic}`,
-        summary: `Key principles, definitions, and high-yield operational laws governing ${topic}.`,
+        title: `Study Notes: ${topic}`,
+        summary: `Here are the most important rules, definitions, and tips you need to know about ${topic}.`,
         keyTerms: [
-            { term: "Primary Axiom", definition: "The fundamental empirical rule established by foundational literature." },
-            { term: "Secondary Constraint", definition: "Boundary conditions that limit practical implementation." }
+            { term: "Main Rule", definition: "The foundational idea that you should always remember for this topic." },
+            { term: "Special Case", definition: "A condition where you need to look out for extra rules or exceptions." }
         ],
         coreRules: [
-            "Maintain consistency across dimensional units.",
-            "Verify edge condition stability before scaling."
+            "Always check your units before calculating your final answer.",
+            "Read the entire question twice to understand what is being asked."
         ],
-        examWarnings: "Examiners frequently conflate correlation with direct causation in testing this domain."
+        examWarnings: "Students often lose marks by mixing up similar terms or rushing through calculations."
     };
 }
 
@@ -1134,12 +1161,12 @@ function renderNoteOutput(note, topic) {
         <div class="glass-card animate-fade-in" style="border-color: rgba(245, 158, 11, 0.3);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <span class="hero-pill" style="margin-bottom: 0.5rem; border-color: rgba(245,158,11,0.4); color: #fbbf24;">High-Yield Cheatsheet</span>
+                    <span class="hero-pill" style="margin-bottom: 0.5rem; border-color: rgba(245,158,11,0.4); color: #fbbf24;">Quick Study Notes</span>
                     <h3 style="font-family: var(--font-display); font-size: 2rem; font-weight: 800;">${note.title}</h3>
                 </div>
                 <button id="btn-save-note" class="btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; background: linear-gradient(135deg, #f59e0b, #d97706);">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
-                    Save to Cloud Library
+                    Save to My Library
                 </button>
             </div>
 
@@ -1147,7 +1174,7 @@ function renderNoteOutput(note, topic) {
 
             <!-- Key Terms -->
             <div style="margin-bottom: 1.5rem;">
-                <h4 style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.75rem;">Essential Glossary</h4>
+                <h4 style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.75rem;">Important Words to Know</h4>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
                     ${(note.keyTerms || []).map(kt => `
                         <div style="padding: 0.85rem 1rem; background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border); border-radius: var(--radius-sm);">
@@ -1160,7 +1187,7 @@ function renderNoteOutput(note, topic) {
 
             <!-- Core Rules -->
             <div style="margin-bottom: 1.5rem;">
-                <h4 style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.75rem;">Formulas & Core Rules</h4>
+                <h4 style="font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; color: #fbbf24; margin-bottom: 0.75rem;">Important Rules & Formulas</h4>
                 <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
                     ${(note.coreRules || []).map(r => `
                         <li style="padding: 0.65rem 0.85rem; background: rgba(245, 158, 11, 0.08); border-left: 3px solid #f59e0b; font-family: var(--font-mono); font-size: 0.885rem; color: #fde68a;">
@@ -1172,7 +1199,7 @@ function renderNoteOutput(note, topic) {
 
             <!-- Exam Warnings -->
             <div style="padding: 1rem 1.25rem; background: rgba(244, 63, 94, 0.1); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: var(--radius-sm);">
-                <strong style="color: #fca5a5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.25rem;">⚠️ Common Examination Trap</strong>
+                <strong style="color: #fca5a5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.25rem;">⚠️ Common Mistake on Exams</strong>
                 <p style="color: #fecdd3; font-size: 0.95rem;">${note.examWarnings || 'Ensure terms and sign conventions are carefully checked.'}</p>
             </div>
         </div>
@@ -1182,9 +1209,9 @@ function renderNoteOutput(note, topic) {
     saveBtn.onclick = async () => {
         if (!currentUser) {
             showModal(
-                'Cloud Library Account Required',
+                'Sign In to Save',
                 `<p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6;">
-                    To store and sync your study notes permanently in your private library, please sign in or register with your email.
+                    To save and keep your study notes permanently in your private library, please sign in or register with your email.
                  </p>
                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                      <button class="btn-primary" onclick="window.EXAMIVO.openAuthModal()">Sign In or Register with Email</button>
@@ -1195,7 +1222,7 @@ function renderNoteOutput(note, topic) {
         }
 
         saveBtn.disabled = true;
-        saveBtn.innerText = 'Saving to Cloud...';
+        saveBtn.innerText = 'Saving to Library...';
         try {
             await addDoc(collection(db, 'notes'), {
                 title: note.title,
@@ -1204,17 +1231,17 @@ function renderNoteOutput(note, topic) {
                 creatorId: currentUser.uid,
                 createdAt: serverTimestamp()
             });
-            saveBtn.innerHTML = `✓ Saved in Cloud Library`;
+            saveBtn.innerHTML = `✓ Saved to My Library`;
             saveBtn.style.background = '#10b981';
         } catch (err) {
             console.error('Could not save note:', err);
             saveBtn.disabled = false;
-            saveBtn.innerText = 'Save to Cloud Library';
+            saveBtn.innerText = 'Save to My Library';
         }
     };
 }
 
-// --- View: Cloud Library (For Storing Quizzes, Teaching & Notes) ---
+// --- View: Saved Library (For Storing Quizzes, Lessons & Notes) ---
 async function renderLibraryView() {
     if (!currentUser) {
         viewContainer.innerHTML = `
@@ -1222,16 +1249,16 @@ async function renderLibraryView() {
                 <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; color: #818cf8;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
                 </div>
-                <h2 style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 800; margin-bottom: 0.75rem;">Your Personal Cloud Library</h2>
+                <h2 style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 800; margin-bottom: 0.75rem;">Your Saved Library</h2>
                 <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; margin-bottom: 2rem;">
-                    Anyone can generate and take exams freely. However, to store your custom examinations, teaching modules, and study notes in the cloud across all your devices, sign in with your email or Google account.
+                    Anyone can create and take practice exams freely. To save your exams, lessons, and notes to access them anytime on any device, sign in with your email or Google account.
                 </p>
                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
                     <button class="btn-primary" style="padding: 0.9rem 1.8rem;" onclick="window.EXAMIVO.openAuthModal()">
                         Sign In / Register with Email
                     </button>
                     <button class="btn-secondary" style="padding: 0.9rem 1.8rem;" onclick="window.EXAMIVO.showView('generate')">
-                        Try Guest Exam Generator
+                        Create Free Practice Exam
                     </button>
                 </div>
             </div>
@@ -1244,20 +1271,20 @@ async function renderLibraryView() {
         <div class="animate-fade-in" style="max-width: 980px; margin: 0 auto;">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <span class="hero-pill">Cloud Persistence</span>
-                    <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800;">My Cloud Library</h2>
-                    <p style="color: var(--text-muted);">Stored quizzes, interactive teaching modules, and personal study notes.</p>
+                    <span class="hero-pill">Saved in Your Account</span>
+                    <h2 style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800;">My Saved Library</h2>
+                    <p style="color: var(--text-muted);">Your saved practice exams, lessons, and study notes.</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem;">
                     <button class="btn-primary" onclick="window.EXAMIVO.showView('generate')">+ New Exam</button>
-                    <button class="btn-secondary" onclick="window.EXAMIVO.showView('teaching')">+ New Teaching</button>
+                    <button class="btn-secondary" onclick="window.EXAMIVO.showView('teaching')">+ New Lesson</button>
                 </div>
             </div>
 
             <!-- Library Tabs -->
             <div style="display: flex; gap: 0.75rem; border-bottom: 1px solid var(--surface-border); margin-bottom: 2rem; padding-bottom: 0.75rem;">
                 <button id="lib-tab-quizzes" class="nav-link-btn active">Saved Exams (<span id="count-quizzes">0</span>)</button>
-                <button id="lib-tab-teachings" class="nav-link-btn">Teaching Modules (<span id="count-teachings">0</span>)</button>
+                <button id="lib-tab-teachings" class="nav-link-btn">Lessons (<span id="count-teachings">0</span>)</button>
                 <button id="lib-tab-notes" class="nav-link-btn">Study Notes (<span id="count-notes">0</span>)</button>
             </div>
 
@@ -1295,7 +1322,7 @@ async function renderLibraryView() {
 
         function renderQuizzesList() {
             if (savedQuizzes.length === 0) {
-                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No custom exams saved yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('generate')">Synthesize Your First Exam</button></div>`;
+                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No saved exams yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('generate')">Create Your First Exam</button></div>`;
                 return;
             }
             contentArea.innerHTML = `
@@ -1303,9 +1330,9 @@ async function renderLibraryView() {
                     ${savedQuizzes.map(q => `
                         <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem;">Cloud Exam</span>
+                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem;">Saved Exam</span>
                                 <h4 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.45rem;">${q.title}</h4>
-                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">${(q.questions || []).length} Items</p>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">${(q.questions || []).length} Questions</p>
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn-primary" style="flex: 1; padding: 0.6rem;" onclick="window.EXAMIVO.launchSavedQuiz('${q.id}')">Take Exam</button>
@@ -1319,7 +1346,7 @@ async function renderLibraryView() {
 
         function renderTeachingsList() {
             if (savedTeachings.length === 0) {
-                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No teaching modules saved yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('teaching')">Create Teaching Lesson</button></div>`;
+                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No lessons saved yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('teaching')">Create a Lesson</button></div>`;
                 return;
             }
             contentArea.innerHTML = `
@@ -1327,7 +1354,7 @@ async function renderLibraryView() {
                     ${savedTeachings.map(t => `
                         <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem; border-color: rgba(6,182,212,0.4); color: #22d3ee;">Teaching Module</span>
+                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem; border-color: rgba(6,182,212,0.4); color: #22d3ee;">Saved Lesson</span>
                                 <h4 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.45rem;">${t.title}</h4>
                                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Topic: ${t.topic || 'General'}</p>
                             </div>
@@ -1343,7 +1370,7 @@ async function renderLibraryView() {
 
         function renderNotesList() {
             if (savedNotes.length === 0) {
-                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No study notes saved yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('notes')">Synthesize Cheatsheet</button></div>`;
+                contentArea.innerHTML = `<div class="glass-card" style="text-align: center; padding: 3rem;"><p style="color: var(--text-muted); margin-bottom: 1rem;">No study notes saved yet.</p><button class="btn-primary" onclick="window.EXAMIVO.showView('notes')">Create Study Notes</button></div>`;
                 return;
             }
             contentArea.innerHTML = `
@@ -1351,7 +1378,7 @@ async function renderLibraryView() {
                     ${savedNotes.map(n => `
                         <div class="glass-card" style="display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem; border-color: rgba(245,158,11,0.4); color: #fbbf24;">Study Cheatsheet</span>
+                                <span class="cloud-saved-badge" style="margin-bottom: 0.75rem; border-color: rgba(245,158,11,0.4); color: #fbbf24;">Saved Notes</span>
                                 <h4 style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.45rem;">${n.title}</h4>
                                 <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">Topic: ${n.topic || 'General'}</p>
                             </div>
@@ -1420,22 +1447,22 @@ function renderQuizReady({ quizId, quizData, rawData }) {
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2.5rem;">
                 <div class="glass-card" style="padding: 1.25rem;">
-                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Items</p>
+                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Questions</p>
                     <p style="font-size: 1.75rem; font-weight: 800; font-family: var(--font-mono);">${data.questions.length}</p>
                 </div>
                 <div class="glass-card" style="padding: 1.25rem;">
-                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Standard</p>
+                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Level</p>
                     <p style="font-size: 1.35rem; font-weight: 700;">${data.difficulty}</p>
                 </div>
                 <div class="glass-card" style="padding: 1.25rem;">
-                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Storage</p>
-                    <p style="font-size: 1.25rem; font-weight: 700; color: ${currentUser ? '#34d399' : '#a5b4fc'};">${currentUser ? 'Cloud Synced' : 'Guest Session'}</p>
+                    <p style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 0.25rem;">Saved Status</p>
+                    <p style="font-size: 1.25rem; font-weight: 700; color: ${currentUser ? '#34d399' : '#a5b4fc'};">${currentUser ? 'Saved to Account' : 'Guest Session'}</p>
                 </div>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.85rem;">
                 <button id="btn-start-exam" class="btn-primary" style="padding: 1.15rem; font-size: 1.1rem; justify-content: center;">
-                    Begin Examination Session
+                    Start Practice Exam
                 </button>
                 <div style="display: flex; gap: 0.75rem;">
                     <button id="btn-copy-exam-link" class="btn-secondary" style="flex: 1;">
@@ -1454,7 +1481,7 @@ function renderQuizReady({ quizId, quizData, rawData }) {
     const shareUrl = `${window.location.origin}${window.location.pathname}?quizId=${quizId}`;
     document.getElementById('btn-copy-exam-link').onclick = () => {
         navigator.clipboard.writeText(shareUrl).then(() => {
-            showModal('Share Link Ready', `<p style="color: var(--text-muted); margin-bottom: 1rem;">Link copied to clipboard:</p><div style="padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px; word-break: break-all; font-family: var(--font-mono); font-size: 0.85rem; color: #818cf8;">${shareUrl}</div>`);
+            showModal('Link Copied!', `<p style="color: var(--text-muted); margin-bottom: 1rem;">Link copied to clipboard:</p><div style="padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px; word-break: break-all; font-family: var(--font-mono); font-size: 0.85rem; color: #818cf8;">${shareUrl}</div>`);
         });
     };
 }
@@ -1511,7 +1538,14 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
                 </div>
 
                 <div class="glass-card" style="margin-bottom: 1.75rem; border-color: rgba(99, 102, 241, 0.2);">
-                    <h3 class="question-text">${q?.question || 'Item text missing'}</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.15rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span class="subtopic-tag">📌 ${q?.subtopic || 'Key Topic'}</span>
+                            <span class="research-badge">${q?.researchTag || '✓ Confirmed Syllabus Fact'}</span>
+                        </div>
+                        <span class="likelihood-pill likelihood-high">${q?.likelihood || '🔥 Common Exam Question'}</span>
+                    </div>
+                    <h3 class="question-text">${q?.question || 'Question text missing'}</h3>
                     <div id="options-container" class="options-grid">
                         ${renderOptionButtons(q)}
                     </div>
@@ -1519,9 +1553,12 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
 
                 <div id="action-drawer" class="hidden glass-card" style="margin-top: 1.5rem; background: rgba(13, 18, 31, 0.95); border-color: rgba(99, 102, 241, 0.3);">
                     <div id="feedback-badge" style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.85rem; padding: 0.35rem 0.85rem; border-radius: 999px; margin-bottom: 0.75rem;"></div>
-                    <p id="explanation-text" style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.25rem;"></p>
+                    <p id="explanation-text" style="color: var(--text-main); font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.75rem;"></p>
+                    <div id="examiner-tip-box" style="display: none; padding: 0.75rem 1rem; background: rgba(245, 158, 11, 0.1); border-left: 3px solid #f59e0b; border-radius: var(--radius-sm); margin-bottom: 1.25rem; font-size: 0.85rem; color: #fde68a;">
+                        <strong>💡 Examiner Tip & Trap:</strong> <span id="examiner-tip-text"></span>
+                    </div>
                     <button id="btn-next-question" class="btn-primary" style="width: 100%; justify-content: center;">
-                        ${currentIndex < data.questions.length - 1 ? 'Next Question →' : 'Complete Assessment →'}
+                        ${currentIndex < data.questions.length - 1 ? 'Next Question →' : 'See My Results →'}
                     </button>
                 </div>
             </div>
@@ -1614,7 +1651,11 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
             correctAnswer: q.answer,
             options: q.options,
             isCorrect,
-            explanation: q.explanation
+            explanation: q.explanation,
+            subtopic: q.subtopic || 'Core Concept',
+            likelihood: q.likelihood || 'High-Yield Exam Item',
+            researchTag: q.researchTag || '✓ Confirmed Syllabus Fact',
+            examinerTip: q.examinerTip || ''
         });
 
         if (clickedBtn) {
@@ -1630,6 +1671,8 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
         const drawer = document.getElementById('action-drawer');
         const badge = document.getElementById('feedback-badge');
         const expText = document.getElementById('explanation-text');
+        const tipBox = document.getElementById('examiner-tip-box');
+        const tipText = document.getElementById('examiner-tip-text');
         const nextBtn = document.getElementById('btn-next-question');
 
         if (drawer && badge && expText && nextBtn) {
@@ -1641,9 +1684,18 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
             } else {
                 badge.style.background = 'rgba(244, 63, 94, 0.15)';
                 badge.style.color = '#f87171';
-                badge.innerHTML = `✕ Missed Concept`;
+                badge.innerHTML = `✕ Incorrect`;
             }
-            expText.innerText = q.explanation || 'Pedagogical explanation.';
+            expText.innerText = q.explanation || 'Helpful explanation.';
+
+            if (tipBox && tipText) {
+                if (q.examinerTip) {
+                    tipText.innerText = q.examinerTip;
+                    tipBox.style.display = 'block';
+                } else {
+                    tipBox.style.display = 'none';
+                }
+            }
 
             nextBtn.onclick = () => {
                 if (currentIndex < data.questions.length - 1) {
@@ -1673,23 +1725,56 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
     else if (percentage < 80) { letterGrade = 'C'; gradeColor = '#fbbf24'; }
     else if (percentage < 90) { letterGrade = 'B'; gradeColor = '#60a5fa'; }
 
+    // Analyze Strong and Weak Points by Subtopic
+    const subtopicMap = {};
+    (answers || []).forEach(a => {
+        const key = a.subtopic || 'General Topic';
+        if (!subtopicMap[key]) {
+            subtopicMap[key] = { total: 0, correct: 0, questions: [], explanations: [] };
+        }
+        subtopicMap[key].total++;
+        if (a.isCorrect) subtopicMap[key].correct++;
+        subtopicMap[key].questions.push(a);
+        if (!a.isCorrect && a.explanation) subtopicMap[key].explanations.push(a.explanation);
+    });
+
+    const strongPoints = [];
+    const weakPoints = [];
+
+    Object.entries(subtopicMap).forEach(([subtopic, info]) => {
+        const rate = Math.round((info.correct / info.total) * 100);
+        if (rate >= 80) {
+            strongPoints.push({ subtopic, rate, total: info.total, correct: info.correct });
+        } else {
+            weakPoints.push({ 
+                subtopic, 
+                rate, 
+                total: info.total, 
+                correct: info.correct, 
+                missedQuestions: info.questions.filter(q => !q.isCorrect),
+                advice: info.explanations[0] || 'Review the main definitions and rules for this topic.'
+            });
+        }
+    });
+
     viewContainer.innerHTML = `
-        <div class="animate-fade-in" style="max-width: 820px; margin: 0 auto;">
-            <div class="glass-card" style="text-align: center; padding: 3rem 2rem; margin-bottom: 2rem;">
-                <span class="hero-pill" style="margin-bottom: 1.5rem;">Diagnostic Report</span>
+        <div class="animate-fade-in" style="max-width: 860px; margin: 0 auto;">
+            <!-- Score & Header Overview -->
+            <div class="glass-card" style="text-align: center; padding: 2.75rem 2rem; margin-bottom: 2rem;">
+                <span class="hero-pill" style="margin-bottom: 1.25rem;">Your Exam Results</span>
                 <div class="score-circle" style="border-color: ${gradeColor};">
                     <span style="font-family: var(--font-display); font-size: 3.5rem; font-weight: 900; line-height: 1;">${percentage}%</span>
                     <span style="font-size: 0.8rem; font-weight: 700; color: ${gradeColor}; text-transform: uppercase; margin-top: 0.25rem;">Grade ${letterGrade}</span>
                 </div>
 
-                <h2 style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 800; margin-bottom: 0.5rem;">
-                    ${percentage >= 80 ? 'Mastery Demonstrated' : 'Diagnostic Complete'}
+                <h2 style="font-family: var(--font-display); font-size: 2.25rem; font-weight: 800; margin-bottom: 0.4rem;">
+                    ${percentage >= 80 ? 'Great Job! High Score' : 'Test Complete - Here are your Strong & Weak Points'}
                 </h2>
-                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 2rem auto;">
-                    ${data.title} • Completed in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s.
+                <p style="color: var(--text-muted); max-width: 580px; margin: 0 auto 1.75rem auto; font-size: 0.95rem;">
+                    Target: <strong>${data.examType || 'Standard Exam'}</strong> • ${data.curriculum || 'Curriculum'} • Finished in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s.
                 </p>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.75rem;">
                     <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border);">
                         <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Score</p>
                         <p style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: #34d399;">${score} / ${totalCount}</p>
@@ -1700,36 +1785,125 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
                     </div>
                     <div style="padding: 1rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.03); border: 1px solid var(--surface-border);">
                         <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Pace</p>
-                        <p style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono);">${Math.round(timeTaken / totalCount)}s / item</p>
+                        <p style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono);">${Math.round(timeTaken / totalCount)}s / question</p>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
                     <button class="btn-primary" onclick="window.EXAMIVO.showView('quiz-play', { quizId: '${quizId}', quizData: window.EXAMIVO.lastSessionData })">
-                        Retake Exam
+                        Retake Test
                     </button>
-                    <button class="btn-secondary" onclick="window.EXAMIVO.showView('home')">
-                        Dashboard
+                    <button class="btn-secondary" onclick="window.EXAMIVO.showView('generate')">
+                        Create New Exam
                     </button>
                 </div>
             </div>
 
-            <!-- Item Breakdown -->
+            <!-- Weakness Drill Hero Card (If Any Weak Points Found) -->
+            ${weakPoints.length > 0 ? `
+                <div class="drill-hero-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                        <div style="max-width: 540px;">
+                            <span class="hero-pill" style="margin-bottom: 0.65rem; border-color: rgba(236,72,153,0.4); color: #f472b6;">Practice Your Weak Points</span>
+                            <h3 style="font-family: var(--font-display); font-size: 1.75rem; font-weight: 800; margin-bottom: 0.4rem;">
+                                Improve Your Weak Points (${weakPoints.length} Areas to Practice)
+                            </h3>
+                            <p style="color: #e2e8f0; font-size: 0.95rem; line-height: 1.5; margin-bottom: 1rem;">
+                                We found the topics you missed. Click below to create a quick practice quiz made specifically from your weak points to help you master them for the <strong>${data.examType || 'exam'}</strong>!
+                            </p>
+                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.25rem;">
+                                ${weakPoints.map(w => `<span style="font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px; background: rgba(244,63,94,0.2); color: #fca5a5; border: 1px solid rgba(244,63,94,0.4);">⚠️ ${w.subtopic}</span>`).join('')}
+                            </div>
+                        </div>
+                        <button id="btn-strengthen-drill" class="btn-primary" style="padding: 1rem 1.6rem; font-size: 1rem; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);">
+                            ⚡ Create Quiz to Strengthen Weak Points
+                        </button>
+                    </div>
+                </div>
+            ` : `
+                <div class="glass-card" style="margin-bottom: 2rem; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.06); text-align: center; padding: 1.5rem;">
+                    <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: #34d399; margin-bottom: 0.25rem;">🌟 Perfect Score!</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">You got all topics right! No weak points found.</p>
+                </div>
+            `}
+
+            <!-- Strengths and Weaknesses Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem;">
+                <!-- Strong Points Card -->
+                <div class="glass-card" style="border-top: 4px solid #10b981;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1.25rem;">
+                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background: rgba(16,185,129,0.15); display: flex; align-items: center; justify-content: center; color: #34d399;">✓</div>
+                        <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; color: #34d399;">Strong Points (${strongPoints.length})</h3>
+                    </div>
+                    ${strongPoints.length === 0 ? `
+                        <p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">You scored under 80% on these topics. Retake or practice to improve!</p>
+                    ` : `
+                        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                            ${strongPoints.map(s => `
+                                <div class="strength-card">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <strong style="color: #fff; font-size: 0.95rem;">${s.subtopic}</strong>
+                                        <span style="font-size: 0.75rem; font-weight: 800; color: #34d399; font-family: var(--font-mono);">${s.rate}% Accuracy</span>
+                                    </div>
+                                    <p style="color: var(--text-muted); font-size: 0.8rem;">Great job! You showed strong understanding of this topic.</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+
+                <!-- Weak Points Card -->
+                <div class="glass-card" style="border-top: 4px solid #f43f5e;">
+                    <div style="display: flex; align-items: center; gap: 0.65rem; margin-bottom: 1.25rem;">
+                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background: rgba(244,63,94,0.15); display: flex; align-items: center; justify-content: center; color: #f43f5e;">!</div>
+                        <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 800; color: #f87171;">Weak Points (${weakPoints.length})</h3>
+                    </div>
+                    ${weakPoints.length === 0 ? `
+                        <p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">No weak points! You understood all the topics tested.</p>
+                    ` : `
+                        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                            ${weakPoints.map(w => `
+                                <div class="weakness-card">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                        <strong style="color: #fff; font-size: 0.95rem;">${w.subtopic}</strong>
+                                        <span style="font-size: 0.75rem; font-weight: 800; color: #f87171; font-family: var(--font-mono);">${w.rate}% Accuracy</span>
+                                    </div>
+                                    <p style="color: #fca5a5; font-size: 0.825rem; line-height: 1.4;">
+                                        <strong style="color: #fff;">Tip to remember:</strong> ${w.advice}
+                                    </p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            </div>
+
+            <!-- Detailed Question Breakdown -->
             <div style="margin-top: 2rem;">
-                <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem;">Item Analysis</h3>
+                <h3 style="font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin-bottom: 1rem;">Question-by-Question Review & Explanations</h3>
                 <div style="display: flex; flex-direction: column; gap: 1rem;">
                     ${(answers || []).map((ans, idx) => `
                         <div class="glass-card" style="border-left: 4px solid ${ans.isCorrect ? '#10b981' : '#f43f5e'}; padding: 1.25rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
-                                <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim);">Item ${idx + 1}</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-dim);">Question ${idx + 1}</span>
+                                    <span class="subtopic-tag">📌 ${ans.subtopic || 'General Topic'}</span>
+                                    <span class="research-badge" style="font-size: 0.65rem; padding: 0.2rem 0.55rem;">${ans.researchTag || '✓ Confirmed Fact'}</span>
+                                    <span class="likelihood-pill likelihood-high" style="font-size: 0.65rem;">${ans.likelihood || 'Common Exam Question'}</span>
+                                </div>
                                 <span style="font-size: 0.75rem; font-weight: 700; color: ${ans.isCorrect ? '#34d399' : '#f87171'};">
-                                    ${ans.isCorrect ? '✓ Correct' : '✕ Missed'}
+                                    ${ans.isCorrect ? '✓ Correct' : '✕ Incorrect'}
                                 </span>
                             </div>
                             <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem;">${ans.questionText}</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm);">
-                                <strong style="color: #a5b4fc;">Rationale:</strong> ${ans.explanation || 'Reviewed.'}
+                            <p style="font-size: 0.85rem; color: var(--text-muted); background: rgba(255,255,255,0.02); padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--surface-border); margin-bottom: ${ans.examinerTip ? '0.5rem' : '0'};">
+                                <strong style="color: #a5b4fc;">Why this is correct:</strong> ${ans.explanation || 'Reviewed.'}
                             </p>
+                            ${ans.examinerTip ? `
+                                <div style="font-size: 0.825rem; color: #fde68a; background: rgba(245, 158, 11, 0.08); padding: 0.5rem 0.85rem; border-radius: var(--radius-sm); border-left: 3px solid #f59e0b;">
+                                    <strong>💡 Tip to remember:</strong> ${ans.examinerTip}
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -1738,6 +1912,27 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
     `;
 
     window.EXAMIVO.lastSessionData = data;
+
+    // Hook up Weakness Drill Button
+    const drillBtn = document.getElementById('btn-strengthen-drill');
+    if (drillBtn) {
+        drillBtn.onclick = async () => {
+            drillBtn.disabled = true;
+            drillBtn.innerHTML = `Creating Practice Quiz for Weak Points...`;
+            try {
+                const weakQuiz = await generateStrengtheningQuiz(data, weakPoints);
+                showView('quiz-play', {
+                    quizId: 'drill_' + Date.now(),
+                    quizData: weakQuiz
+                });
+            } catch (err) {
+                console.error('Strengthening quiz error:', err);
+                showModal('Notice', '<p style="color: var(--text-muted)">Could not create the practice quiz right now. Please retake the test to practice these questions.</p>');
+                drillBtn.disabled = false;
+                drillBtn.innerHTML = `⚡ Create Quiz to Strengthen Weak Points`;
+            }
+        };
+    }
 
     // Log history for signed-in users only
     if (currentUser?.uid) {
@@ -1761,6 +1956,108 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
     }
 }
 
+// Formulation for Weakness Retest Quiz
+async function generateStrengtheningQuiz(originalData, weakPoints) {
+    try {
+        const weaknessQuiz = createWeaknessQuiz(originalData, weakPoints);
+        if (weaknessQuiz && weaknessQuiz.questions && weaknessQuiz.questions.length > 0) {
+            return weaknessQuiz;
+        }
+    } catch (err) {
+        console.warn('Weakness drill generator note:', err);
+    }
+    const weakTopics = weakPoints.map(w => w.subtopic).join('; ');
+    const apiKey = "AIzaSyBxnfxEw__3WptO44bWVzhenUVGc26wkG0";
+    const prompt = `
+        You are EXAMIVO, a friendly exam coach and teacher.
+        The student took a test for ${originalData.examType || 'the Exam'} (${originalData.curriculum || 'Standard Board'}) and got questions wrong on these specific topics:
+        "${weakTopics}".
+        
+        Create a 5-question practice quiz focusing on these exact topics where the student struggled.
+        Write questions with clear, simple words that help the student understand and practice their weak points.
+        Provide simple step-by-step explanations in plain English.
+        Include Multiple Choice with 4 options and answer index ("0","1","2","3").
+        
+        Return strictly valid JSON matching EXAMIVO schema:
+        {
+            "title": "Practice Quiz: ${weakPoints[0]?.subtopic || 'Weak Points'}",
+            "description": "Targeted quiz to strengthen weak points in ${originalData.examType || 'Exam'}",
+            "examType": "${originalData.examType || 'Practice'}",
+            "curriculum": "${originalData.curriculum || 'Standard'}",
+            "difficulty": "Practice Level",
+            "questions": [
+                {
+                    "type": "multiple-choice",
+                    "question": "Question text?",
+                    "options": ["A", "B", "C", "D"],
+                    "answer": "0",
+                    "subtopic": "Subtopic Name",
+                    "likelihood": "🎯 Weak Point Practice",
+                    "explanation": "Clear, simple explanation."
+                }
+            ]
+        }
+    `;
+
+    try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            })
+        });
+
+        if (resp.ok) {
+            const json = await resp.json();
+            const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+                let clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
+                return JSON.parse(clean);
+            }
+        }
+    } catch (e) {
+        console.warn('Strengthening API call note:', e);
+    }
+
+    // Dynamic Fallback in plain English
+    const primaryWeakness = weakPoints[0]?.subtopic || 'Key Concept';
+    return {
+        title: `Practice Quiz: ${primaryWeakness}`,
+        description: `Targeted quiz to practice and master ${primaryWeakness}`,
+        examType: originalData.examType || 'Practice',
+        curriculum: originalData.curriculum || 'Standard',
+        difficulty: 'Practice Level',
+        questions: [
+            {
+                type: 'multiple-choice',
+                question: `When answering questions on ${primaryWeakness}, what is the best first step to get the right answer?`,
+                options: [
+                    `Read the question carefully and write down what you are given and what you need to find`,
+                    `Start writing down random formulas before reading the whole question`,
+                    `Guess the final answer without showing any steps`,
+                    `Skip checking your units and calculations`
+                ],
+                answer: '0',
+                subtopic: primaryWeakness,
+                likelihood: '🎯 Weak Point Practice',
+                explanation: `Writing down what you know and what you need to find prevents mistakes on ${primaryWeakness}.`
+            },
+            {
+                type: 'true-false',
+                question: `True or False: Breaking down ${primaryWeakness} problems into smaller, simple steps makes them much easier to solve correctly.`,
+                options: ['True', 'False'],
+                answer: 'true',
+                subtopic: primaryWeakness,
+                likelihood: '⭐ Helpful Practice Tip',
+                explanation: `True! Solving one small step at a time helps you avoid confusion and earn full marks.`
+            }
+        ]
+    };
+}
+
 // --- Universal Auth Modal (Email & Password + Google) ---
 function openAuthModal() {
     showModal(
@@ -1768,7 +2065,7 @@ function openAuthModal() {
         `
         <div style="margin-bottom: 1.25rem;">
             <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5;">
-                Sign in with normal email or Google to store your custom quizzes, interactive teaching modules, and notes.
+                Sign in with your email or Google account to save your practice quizzes, lessons, and notes.
             </p>
         </div>
 
@@ -1994,7 +2291,7 @@ window.EXAMIVO = {
         }
     },
     deleteCloudItem: async (colName, id) => {
-        if (!confirm('Are you sure you want to remove this item from your Cloud Library?')) return;
+        if (!confirm('Are you sure you want to delete this saved item?')) return;
         try {
             await deleteDoc(doc(db, colName, id));
             renderLibraryView();

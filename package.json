@@ -6,6 +6,6 @@
   "scripts": {
     "dev": "node -e 'const http=require(\"http\"),fs=require(\"fs\"),path=require(\"path\");const M={\".html\":\"text/html\",\".js\":\"text/javascript\",\".css\":\"text/css\",\".json\":\"application/json\",\".svg\":\"image/svg+xml\"};http.createServer((req,res)=>{let f=path.join(process.cwd(),req.url===\"/\"?\"index.html\":req.url.split(\"?\")[0]);if(!fs.existsSync(f))f=path.join(process.cwd(),\"index.html\");const ext=path.extname(f);res.writeHead(200,{\"Content-Type\":M[ext]||\"text/plain\",\"Access-Control-Allow-Origin\":\"*\"});fs.createReadStream(f).pipe(res);}).listen(3000,\"0.0.0.0\",()=>console.log(\"EXAMIVO listening on http://0.0.0.0:3000\"));'",
     "build": "echo 'Static HTML, CSS & JS ready for production'",
-    "lint": "node -c app.js firebase-config.js"
+    "lint": "node -c app.js research-engine.js firebase-config.js"
   }
 }

@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXAMIVO | Next-Gen AI Exam, Teaching & Study Intelligence</title>
-    <meta name="description" content="EXAMIVO - AI exam generation, interactive concept teaching, and smart study notes powered by Firebase.">
+    <title>EXAMIVO | Practice Exams, Topic Explanations & Study Notes</title>
+    <meta name="description" content="EXAMIVO - Practice exam questions, get simple topic explanations, and create quick study notes.">
     
     <!-- OpenGraph / Social Meta -->
-    <meta property="og:title" content="EXAMIVO | Next-Gen AI Exam & Study Intelligence">
-    <meta property="og:description" content="Use instantly as a guest, or sign in with email/Google to save quizzes, teaching modules, and notes to your cloud library.">
+    <meta property="og:title" content="EXAMIVO | Practice Exams, Simple Explanations & Study Notes">
+    <meta property="og:description" content="Use instantly as a guest, or sign in with email/Google to save quizzes, lessons, and notes to your cloud library.">
     <meta property="og:type" content="website">
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%236366f1%22/><path d=%22M25 30h50M25 50h35M25 70h45%22 stroke=%22white%22 stroke-width=%228%22 stroke-linecap=%22round%22/><circle cx=%2275%22 cy=%2260%22 r=%2212%22 fill=%22%2306b6d4%22/></svg>">
 
-    <!-- Fonts -->
+    <!-- Fonts: Inter, Plus Jakarta Sans, Outfit, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Stylesheet -->
     <link rel="stylesheet" href="./style.css">
@@ -29,23 +29,44 @@
             <div class="logo-container" id="logo-home">
                 <div class="logo-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="m9 18 6-6-6-6"/>
+                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+                        <path d="M6 6h10"/>
+                        <path d="M6 10h10"/>
+                        <path d="m9 16 2 2 4-4"/>
                     </svg>
                 </div>
                 <div class="logo-text-group">
                     <span class="logo-text">EXAMIVO</span>
-                    <span class="logo-tagline">Academic Engine</span>
+                    <span class="logo-tagline">Researched Exam Prep</span>
                 </div>
             </div>
 
-            <!-- Desktop Links -->
+            <!-- Desktop Links with Modern Icons -->
             <ul class="nav-links">
-                <li><button id="nav-home" class="nav-link-btn active">Home</button></li>
-                <li><button id="nav-studio" class="nav-link-btn">Exam Studio</button></li>
-                <li><button id="nav-teaching" class="nav-link-btn">Teaching</button></li>
-                <li><button id="nav-notes" class="nav-link-btn">Notes</button></li>
-                <li><button id="nav-hub" class="nav-link-btn">Benchmarks</button></li>
-                <li><button id="nav-library" class="nav-link-btn">Cloud Library</button></li>
+                <li><button id="nav-home" class="nav-link-btn active">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Home
+                </button></li>
+                <li><button id="nav-studio" class="nav-link-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><circle cx="12" cy="12" r="3"/></svg>
+                    Create Exam
+                </button></li>
+                <li><button id="nav-teaching" class="nav-link-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    Explain Topic
+                </button></li>
+                <li><button id="nav-notes" class="nav-link-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                    Study Notes
+                </button></li>
+                <li><button id="nav-hub" class="nav-link-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="m7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></svg>
+                    Sample Exams
+                </button></li>
+                <li><button id="nav-library" class="nav-link-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                    Saved Library
+                </button></li>
             </ul>
 
             <!-- Auth & User Actions -->
@@ -66,11 +87,11 @@
         <div id="mobile-dropdown" class="hidden glass-card" style="margin: 0.5rem 1rem; border-radius: var(--radius-md); padding: 1rem; position: sticky; top: 4.5rem; z-index: 99;">
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <button class="nav-link-btn" onclick="window.EXAMIVO.showView('home'); document.getElementById('mobile-dropdown').classList.add('hidden');">Home</button>
-                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('generate'); document.getElementById('mobile-dropdown').classList.add('hidden');">Exam Studio</button>
-                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('teaching'); document.getElementById('mobile-dropdown').classList.add('hidden');">Teaching Explainer</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('generate'); document.getElementById('mobile-dropdown').classList.add('hidden');">Create Exam</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('teaching'); document.getElementById('mobile-dropdown').classList.add('hidden');">Explain Topic</button>
                 <button class="nav-link-btn" onclick="window.EXAMIVO.showView('notes'); document.getElementById('mobile-dropdown').classList.add('hidden');">Study Notes</button>
-                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('hub'); document.getElementById('mobile-dropdown').classList.add('hidden');">Benchmarks</button>
-                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('library'); document.getElementById('mobile-dropdown').classList.add('hidden');">Cloud Library</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('hub'); document.getElementById('mobile-dropdown').classList.add('hidden');">Sample Exams</button>
+                <button class="nav-link-btn" onclick="window.EXAMIVO.showView('library'); document.getElementById('mobile-dropdown').classList.add('hidden');">Saved Library</button>
             </div>
         </div>
 
@@ -78,27 +99,30 @@
         <main id="main-content" class="main-content">
             <!-- Hero Section (Default View) -->
             <section id="hero" class="hero-section animate-fade-in">
-                <span class="hero-pill">No Account Required To Learn</span>
+                <span class="hero-pill">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+                    Researched Past Paper Questions • Free Guest Access
+                </span>
                 <h1 class="hero-title">
-                    PRECISION TESTING. <br>
-                    <span class="hero-title-highlight">DEEPER COGNITION.</span>
+                    REAL EXAM QUESTIONS. <br>
+                    <span class="hero-title-highlight">PROVEN RESULTS.</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Transform complex textbooks, lecture notes, or syllabi into rigorous AI examinations, interactive teaching modules, and high-yield study notes. Use freely as a guest, or sign in with email to save your library in the cloud.
+                    Type any topic or upload your syllabus notes. EXAMIVO brings out the real questions most likely to come out in your exam, pinpoints your strong & weak points, and creates focused quizzes to strengthen them.
                 </p>
 
                 <div class="hero-actions">
                     <button id="cta-generate" class="btn-primary" style="padding: 0.9rem 1.8rem; font-size: 1rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        Synthesize Custom Exam
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+                        Create Practice Exam
                     </button>
                     <button id="cta-teaching" class="btn-secondary" style="padding: 0.9rem 1.8rem; font-size: 1rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                        Teaching Explainer
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        Explain a Topic
                     </button>
                     <button id="cta-hub" class="btn-outline" style="padding: 0.9rem 1.5rem; font-size: 1rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-                        Instant Benchmarks
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Sample Exams
                     </button>
                 </div>
 
@@ -128,7 +152,7 @@
                     <span style="font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; letter-spacing: -0.02em;">EXAMIVO</span>
                 </div>
                 <p style="color: var(--text-dim); font-size: 0.85rem; max-width: 500px;">
-                    Next-generation academic evaluation and intelligence platform powered by Firebase.
+                    Your friendly exam study partner. Practice real exam questions, understand hard topics easily, and strengthen your weak areas.
                 </p>
                 <p style="color: var(--text-muted); font-size: 0.8rem; letter-spacing: 0.04em;">
                     Created by <span style="color: #818cf8; font-weight: 700;">Giobari Daniel</span> (Gee Productions)
