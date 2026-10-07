@@ -32,6 +32,13 @@ import {
     createWeaknessQuiz
 } from './research-engine.js';
 
+import {
+    exportQuizAsPdf,
+    exportQuizAsDocx,
+    exportQuizAsTxt,
+    printQuiz
+} from './export-engine.js';
+
 // Global State
 let currentUser = null;
 let currentActiveView = 'home';
@@ -1471,8 +1478,34 @@ function renderQuizReady({ quizId, quizData, rawData }) {
                     </button>
                 </div>
             </div>
+
+            <!-- Export & Print Blank Exam Paper -->
+            <div class="glass-card export-panel" style="margin-top: 1.75rem; text-align: left;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <strong style="font-size: 0.95rem; color: #fff; display: block; margin-bottom: 0.2rem;">Save or Print Blank Examination Paper</strong>
+                        <p style="color: var(--text-muted); font-size: 0.825rem; margin: 0;">Save as PDF, Word, Text, or print to practice on paper with answer key.</p>
+                    </div>
+                    <div class="export-btn-group" style="margin: 0;">
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsPdf(window.EXAMIVO.activeReadyQuiz)">
+                            📥 Save as PDF (.pdf)
+                        </button>
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsDocx(window.EXAMIVO.activeReadyQuiz)">
+                            📄 Save as Word (.docx)
+                        </button>
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsTxt(window.EXAMIVO.activeReadyQuiz)">
+                            📝 Save as Text (.txt)
+                        </button>
+                        <button class="btn-export btn-export-print" onclick="window.EXAMIVO.printQuiz(window.EXAMIVO.activeReadyQuiz)">
+                            🖨️ Print Exam Paper
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+
+    window.EXAMIVO.activeReadyQuiz = data;
 
     document.getElementById('btn-start-exam').onclick = () => {
         showView('quiz-play', { quizId, quizData: data });
@@ -1501,6 +1534,7 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
     let timerInterval = null;
 
     activeQuizSession = { quizId, data, answers };
+    window.EXAMIVO.activePlayQuiz = data;
 
     function startTimer() {
         if (timerInterval) clearInterval(timerInterval);
@@ -1527,9 +1561,14 @@ function renderQuizPlay({ quizId, quizData, rawData }) {
                         <span style="width: 4px; height: 4px; border-radius: 50%; background: var(--surface-border);"></span>
                         <span style="font-size: 0.75rem; color: var(--text-dim);">${data.difficulty}</span>
                     </div>
-                    <div class="timer-pill">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        <span id="exam-timer">00:00</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <button class="btn-export btn-export-print" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;" onclick="window.EXAMIVO.printQuiz(window.EXAMIVO.activePlayQuiz)" title="Print or save this exam">
+                            🖨️ Print / Save Paper
+                        </button>
+                        <div class="timer-pill">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <span id="exam-timer">00:00</span>
+                        </div>
                     </div>
                 </div>
 
@@ -1797,6 +1836,25 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
                         Create New Exam
                     </button>
                 </div>
+
+                <!-- Save & Print Buttons in Overview Card -->
+                <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--surface-border);">
+                    <p style="font-size: 0.85rem; font-weight: 700; color: #fff; margin-bottom: 0.65rem;">Save or Print Exam with Your Answers:</p>
+                    <div class="export-btn-group" style="justify-content: center; margin: 0;">
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsPdf(window.EXAMIVO.lastSessionData, window.EXAMIVO.lastSessionAnswers, window.EXAMIVO.lastSessionScore)">
+                            📥 Save as PDF (.pdf)
+                        </button>
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsDocx(window.EXAMIVO.lastSessionData, window.EXAMIVO.lastSessionAnswers, window.EXAMIVO.lastSessionScore)">
+                            📄 Save as Word (.docx)
+                        </button>
+                        <button class="btn-export" onclick="window.EXAMIVO.exportQuizAsTxt(window.EXAMIVO.lastSessionData, window.EXAMIVO.lastSessionAnswers, window.EXAMIVO.lastSessionScore)">
+                            📝 Save as Text (.txt)
+                        </button>
+                        <button class="btn-export btn-export-print" onclick="window.EXAMIVO.printQuiz(window.EXAMIVO.lastSessionData, window.EXAMIVO.lastSessionAnswers, window.EXAMIVO.lastSessionScore)">
+                            🖨️ Print Exam Paper
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Weakness Drill Hero Card (If Any Weak Points Found) -->
@@ -1912,6 +1970,8 @@ async function renderQuizResults({ quizId, quizData, rawData, score, answers, ti
     `;
 
     window.EXAMIVO.lastSessionData = data;
+    window.EXAMIVO.lastSessionAnswers = answers;
+    window.EXAMIVO.lastSessionScore = score;
 
     // Hook up Weakness Drill Button
     const drillBtn = document.getElementById('btn-strengthen-drill');
@@ -2298,6 +2358,26 @@ window.EXAMIVO = {
         } catch (e) {
             console.error('Delete failed:', e);
         }
+    },
+    exportQuizAsPdf: (data, answers, score) => {
+        const quiz = data || window.EXAMIVO.lastSessionData || window.EXAMIVO.activeReadyQuiz || window.EXAMIVO.activePlayQuiz;
+        if (quiz) exportQuizAsPdf(quiz, answers || window.EXAMIVO.lastSessionAnswers, score !== undefined ? score : window.EXAMIVO.lastSessionScore);
+    },
+    exportQuizAsDocx: (data, answers, score) => {
+        const quiz = data || window.EXAMIVO.lastSessionData || window.EXAMIVO.activeReadyQuiz || window.EXAMIVO.activePlayQuiz;
+        if (quiz) exportQuizAsDocx(quiz, answers || window.EXAMIVO.lastSessionAnswers, score !== undefined ? score : window.EXAMIVO.lastSessionScore);
+    },
+    exportQuizAsTxt: (data, answers, score) => {
+        const quiz = data || window.EXAMIVO.lastSessionData || window.EXAMIVO.activeReadyQuiz || window.EXAMIVO.activePlayQuiz;
+        if (quiz) exportQuizAsTxt(quiz, answers || window.EXAMIVO.lastSessionAnswers, score !== undefined ? score : window.EXAMIVO.lastSessionScore);
+    },
+    printQuiz: (data, answers, score) => {
+        const quiz = data || window.EXAMIVO.lastSessionData || window.EXAMIVO.activeReadyQuiz || window.EXAMIVO.activePlayQuiz;
+        if (quiz) printQuiz(quiz, answers || window.EXAMIVO.lastSessionAnswers, score !== undefined ? score : window.EXAMIVO.lastSessionScore);
+    },
+    printQuizById: (id) => {
+        const item = (window._libraryCache?.quizzes || []).find(q => q.id === id) || CURATED_EXAMS.find(e => e.id === id);
+        if (item) printQuiz(item);
     }
 };
 
